@@ -39,7 +39,10 @@ fun ASRScreen(
                     .padding(16.dp)
             ) {
                 Text(
-                    text = transcription?.text ?: "Result text",
+                    text = when {
+                        isListening && (transcription?.text.isNullOrEmpty()) -> "Recording..."
+                        else -> transcription?.text ?: ""
+                    },
                     style = MaterialTheme.typography.bodyLarge
                 )
                 /** Text(

@@ -81,7 +81,7 @@ class ASRRepositoryImpl @Inject constructor(
         accumulatedText = StringBuilder()
         currentUtterance = ""
 
-        _transcriptionFlow.tryEmit(Transcription("0", "Recording...", 0f, 0L, false))
+        _transcriptionFlow.tryEmit(Transcription("0", "", 0f, 0L, false))
 
         // Start inference loop first, then stream audio chunks as they arrive
         nativeBridge.startInference()
