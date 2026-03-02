@@ -22,7 +22,7 @@ fun ASRScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = if (isListening) "Recording..." else "Press bottom to Start",
+            text = if (isListening) "Result text" else "Press bottom to Start",
             style = MaterialTheme.typography.titleMedium
         )
 

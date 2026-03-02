@@ -30,7 +30,8 @@ Kotlin-ASR-with-ncnn/
 ├── sherpa-ncnn/            # sherpa-ncnn C++ library (build scripts)
 ├── scripts/                # Build script for native libs
 └── gradle/
-```
+
+
 
 ---
 

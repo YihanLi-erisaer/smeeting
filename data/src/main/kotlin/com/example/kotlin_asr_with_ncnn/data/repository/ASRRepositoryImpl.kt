@@ -12,7 +12,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
-import java.util.Collections
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -23,8 +22,6 @@ class ASRRepositoryImpl @Inject constructor(
 ) : ASRRepository {
 
     private val TAG = "ASRRepositoryImpl"
-    
-    private val audioChunks = Collections.synchronizedList(mutableListOf<ShortArray>())
 
     private val _transcriptionFlow = MutableSharedFlow<Transcription>(
         replay = 1,
@@ -32,77 +29,80 @@ class ASRRepositoryImpl @Inject constructor(
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
 
-    private var lastTranscription: Transcription? = null
+    /** Completed sentences; new sentences append here */
+    private var accumulatedText = StringBuilder()
+    /** In-progress partial for the current sentence */
+    private var currentUtterance = ""
 
     init {
         nativeBridge.setCallback { text, confidence, isFinal ->
             Log.d(TAG, "Native Callback: '$text' (isFinal: $isFinal)")
             
-            // Only update if the new text is not a generic "Finished" message, 
-            // OR if it's the first result we've ever gotten.
             val isStatusMessage = text.contains("ASR Session Finished") || text.contains("Transcribe Complete")
-            
-            if (!isStatusMessage || lastTranscription == null) {
-                val newTranscription = Transcription(
-                    id = System.currentTimeMillis().toString(),
-                    text = text,
-                    confidence = confidence,
-                    timestamp = System.currentTimeMillis(),
-                    isFinal = isFinal
-                )
-                lastTranscription = newTranscription
-                _transcriptionFlow.tryEmit(newTranscription)
-            } else {
+            if (isStatusMessage) {
                 Log.d(TAG, "Skipping status message to preserve transcription text")
+                return@setCallback
             }
+            if (text.isEmpty()) return@setCallback
+
+            val displayText = if (isFinal) {
+                if (accumulatedText.isNotEmpty()) accumulatedText.append(" ")
+                accumulatedText.append(text)
+                currentUtterance = ""
+                accumulatedText.toString()
+            } else {
+                // New utterance: new text doesn't extend current (model reset after endpoint)
+                val isNewUtterance = currentUtterance.isNotEmpty() &&
+                    text != currentUtterance &&
+                    !text.startsWith(currentUtterance) &&
+                    !currentUtterance.startsWith(text)
+                if (isNewUtterance) {
+                    if (accumulatedText.isNotEmpty()) accumulatedText.append(" ")
+                    accumulatedText.append(currentUtterance)
+                    currentUtterance = ""
+                }
+                currentUtterance = text
+                if (accumulatedText.isEmpty()) text else "$accumulatedText $text"
+            }
+
+            val newTranscription = Transcription(
+                id = System.currentTimeMillis().toString(),
+                text = displayText,
+                confidence = confidence,
+                timestamp = System.currentTimeMillis(),
+                isFinal = isFinal
+            )
+            _transcriptionFlow.tryEmit(newTranscription)
         }
     }
 
     override fun startListening(): Flow<Transcription> {
-        Log.d(TAG, "startListening: Buffering audio")
-        audioChunks.clear()
-        lastTranscription = null
-        
+        Log.d(TAG, "startListening: Streaming audio to ASR")
+        accumulatedText = StringBuilder()
+        currentUtterance = ""
+
         _transcriptionFlow.tryEmit(Transcription("0", "Recording...", 0f, 0L, false))
+
+        // Start inference loop first, then stream audio chunks as they arrive
+        nativeBridge.startInference()
 
         audioRecorder.start(object : AudioRecorder.AudioDataListener {
             override fun onAudioData(data: ShortArray) {
-                audioChunks.add(data)
+                nativeBridge.feedAudioData(data)
             }
         })
         return _transcriptionFlow.asSharedFlow()
     }
 
     override suspend fun stopListening() {
-        Log.d(TAG, "stopListening: Recorder stopped, starting model inference")
+        Log.d(TAG, "stopListening: Stopping recorder and flushing stream")
         audioRecorder.stop()
 
-        val totalSize = synchronized(audioChunks) { audioChunks.sumOf { it.size } }
-        
-        if (totalSize > 0) {
-            val fullAudio = ShortArray(totalSize)
-            var offset = 0
-            synchronized(audioChunks) {
-                for (chunk in audioChunks) {
-                    System.arraycopy(chunk, 0, fullAudio, offset, chunk.size)
-                    offset += chunk.size
-                }
-            }
-
-            withContext(Dispatchers.Default) {
-                _transcriptionFlow.tryEmit(Transcription("proc", "Processing recording...", 0f, 0L, false))
-                
-                nativeBridge.stopInference()
-                nativeBridge.startInference()
-                nativeBridge.feedAudioData(fullAudio)
-                nativeBridge.signalInputFinished()
-                nativeBridge.stopInference()
-                
-                Log.d(TAG, "Inference completed for $totalSize samples")
-            }
-        } else {
-            Log.w(TAG, "No audio data was captured")
-            _transcriptionFlow.tryEmit(Transcription("err", "Error: No audio captured", 0f, 0L, true))
+        withContext(Dispatchers.Default) {
+            // Don't overwrite with "Processing..." - preserve streamed text; final result comes from callback
+            nativeBridge.signalInputFinished()
+            nativeBridge.stopInference()
+            Log.d(TAG, "Streaming inference completed")
         }
     }
 
