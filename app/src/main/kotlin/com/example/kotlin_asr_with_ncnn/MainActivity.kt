@@ -9,10 +9,16 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import com.example.kotlin_asr_with_ncnn.core.media.ModelConfig
 import com.example.kotlin_asr_with_ncnn.core.media.NcnnNativeBridge
+import com.example.kotlin_asr_with_ncnn.core.ui.AppTheme
 import com.example.kotlin_asr_with_ncnn.feature.home.ASRScreen
 import com.example.kotlin_asr_with_ncnn.feature.home.ASRViewModel
+import com.example.kotlin_asr_with_ncnn.feature.settings.SettingsScreen
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -23,6 +29,7 @@ class MainActivity : ComponentActivity() {
     lateinit var nativeBridge: NcnnNativeBridge
 
     private val viewModel: ASRViewModel by viewModels()
+    private lateinit var themePreferences: ThemePreferences
 
     // Audio recording permission request
     private val requestPermissionLauncher = registerForActivityResult(
@@ -37,14 +44,31 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        themePreferences = ThemePreferences(this)
 
         // Request audio recording permission
         requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
 
         setContent {
-            MaterialTheme {
+            var darkTheme by remember { mutableStateOf(themePreferences.darkTheme) }
+            var showSettings by remember { mutableStateOf(false) }
+
+            AppTheme(darkTheme = darkTheme) {
                 Surface(color = MaterialTheme.colorScheme.background) {
-                    ASRScreen(viewModel = viewModel)
+                    when {
+                        showSettings -> SettingsScreen(
+                            darkTheme = darkTheme,
+                            onDarkThemeChanged = {
+                                darkTheme = it
+                                themePreferences.darkTheme = it
+                            },
+                            onBack = { showSettings = false }
+                        )
+                        else -> ASRScreen(
+                            viewModel = viewModel,
+                            onSettingsClick = { showSettings = true }
+                        )
+                    }
                 }
             }
         }

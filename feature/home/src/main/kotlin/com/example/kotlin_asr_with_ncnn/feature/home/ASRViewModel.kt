@@ -49,7 +49,6 @@ class ASRViewModel @Inject constructor(
         viewModelScope.launch {
             stopASRUseCase()
             _isListening.value = false
-            // Note: We don't cancel the job here so we can receive the final processing result
         }
     }
 

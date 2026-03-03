@@ -9,55 +9,67 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun ASRScreen(
-    viewModel: ASRViewModel
+    viewModel: ASRViewModel,
+    onSettingsClick: () -> Unit = {}
 ) {
     val transcription by viewModel.transcriptionState.collectAsState()
     val isListening by viewModel.isListening.collectAsState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = if (isListening) "Result text" else "Press bottom to Start",
-            style = MaterialTheme.typography.titleMedium
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Card(
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp)
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Box(
+            Text(
+                text = if (isListening) "Result text" else "Press Start bottom to start",
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Card(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp)
+                    .fillMaxWidth()
+                    .height(200.dp)
             ) {
-                Text(
-                    text = when {
-                        isListening && (transcription?.text.isNullOrEmpty()) -> "Recording..."
-                        else -> transcription?.text ?: ""
-                    },
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                /** Text(
-                    text = "Confidence: ${transcription?.confidence ?: 0f}",
-                    style = MaterialTheme.typography.bodySmall
-                )**/
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        text = when {
+                            isListening && (transcription?.text.isNullOrEmpty()) -> "Recording..."
+                            else -> transcription?.text ?: ""
+                        },
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Button(
+                onClick = { viewModel.toggleListening() }
+            ) {
+                Text(text = if (isListening) "Stop" else "Start")
+            }
+
+            Spacer(modifier = Modifier.height(36.dp))
+
+            Text(text = "AI model may make mistakes!", style = MaterialTheme.typography.labelSmall)
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Button(
-            onClick = { viewModel.toggleListening() }
+        IconButton(
+            onClick = onSettingsClick,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(24.dp)
         ) {
-            Text(text = if (isListening) "Stop" else "Start")
+            Text(text = "⚙", style = MaterialTheme.typography.titleLarge)
         }
     }
 }
