@@ -46,7 +46,7 @@ class ASRRepositoryImpl @Inject constructor(
             if (text.isEmpty()) return@setCallback
 
             val displayText = if (isFinal) {
-                if (accumulatedText.isNotEmpty()) accumulatedText.append(" ")
+                if (accumulatedText.isNotEmpty()) accumulatedText.append(", ")
                 accumulatedText.append(text)
                 currentUtterance = ""
                 accumulatedText.toString()
@@ -57,12 +57,12 @@ class ASRRepositoryImpl @Inject constructor(
                     !text.startsWith(currentUtterance) &&
                     !currentUtterance.startsWith(text)
                 if (isNewUtterance) {
-                    if (accumulatedText.isNotEmpty()) accumulatedText.append(" ")
+                    if (accumulatedText.isNotEmpty()) accumulatedText.append(", ")
                     accumulatedText.append(currentUtterance)
                     currentUtterance = ""
                 }
                 currentUtterance = text
-                if (accumulatedText.isEmpty()) text else "$accumulatedText $text"
+                if (accumulatedText.isEmpty()) text else "$accumulatedText, $text"
             }
 
             val newTranscription = Transcription(
@@ -99,9 +99,16 @@ class ASRRepositoryImpl @Inject constructor(
         audioRecorder.stop()
 
         withContext(Dispatchers.Default) {
-            // Don't overwrite with "Processing..." - preserve streamed text; final result comes from callback
             nativeBridge.signalInputFinished()
             nativeBridge.stopInference()
+            // Append full stop when user presses Stop, if there is output and it doesn't already end with .
+            val fullText = (accumulatedText.toString() + if (currentUtterance.isNotEmpty()) " $currentUtterance" else "").trim()
+            if (fullText.isNotEmpty() && !fullText.endsWith('.')) {
+                val textWithPeriod = "$fullText."
+                accumulatedText.clear()
+                accumulatedText.append(textWithPeriod)
+                _transcriptionFlow.tryEmit(Transcription("stop", textWithPeriod, 0f, System.currentTimeMillis(), true))
+            }
             Log.d(TAG, "Streaming inference completed")
         }
     }
