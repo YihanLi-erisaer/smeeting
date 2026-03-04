@@ -2,9 +2,11 @@ package com.example.kotlin_asr_with_ncnn.feature.home
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -14,6 +16,9 @@ fun ASRScreen(
 ) {
     val transcription by viewModel.transcriptionState.collectAsState()
     val isListening by viewModel.isListening.collectAsState()
+    val clipboardManager = LocalClipboardManager.current
+    val resultText = transcription?.text.orEmpty()
+    val canCopy = !isListening && resultText.isNotBlank()
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -52,10 +57,22 @@ fun ASRScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Button(
-                onClick = { viewModel.toggleListening() }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = if (isListening) "Stop" else "Start")
+                Button(
+                    onClick = { viewModel.toggleListening() }
+                ) {
+                    Text(text = if (isListening) "Stop" else "Start")
+                }
+
+                Button(
+                    onClick = { clipboardManager.setText(AnnotatedString(resultText)) },
+                    enabled = canCopy
+                ) {
+                    Text(text = "Copy")
+                }
             }
 
             Spacer(modifier = Modifier.height(36.dp))

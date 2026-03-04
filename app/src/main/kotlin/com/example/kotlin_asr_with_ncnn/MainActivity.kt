@@ -4,6 +4,7 @@ import android.Manifest
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -56,6 +57,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             var darkTheme by remember { mutableStateOf(themePreferences.darkTheme) }
             var showSettings by remember { mutableStateOf(false) }
+
+            BackHandler(enabled = showSettings) {
+                showSettings = false
+            }
 
             AppTheme(darkTheme = darkTheme) {
                 Surface(color = MaterialTheme.colorScheme.background) {
