@@ -2,11 +2,14 @@ package com.example.kotlin_asr_with_ncnn.core.media
 
 import android.content.res.AssetManager
 import android.util.Log
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class NcnnNativeBridge @Inject constructor() {
+    private val isModelInitialized = AtomicBoolean(false)
+
     companion object {
         init {
             try {
@@ -41,18 +44,34 @@ class NcnnNativeBridge @Inject constructor() {
     }
 
     fun initModel(assetManager: AssetManager, config: ModelConfig): Boolean {
-        return initModelNative(
-            assetManager,
-            config.encoderParam,
-            config.encoderBin,
-            config.decoderParam,
-            config.decoderBin,
-            config.joinerParam,
-            config.joinerBin,
-            config.tokens,
-            config.numThreads,
-            config.useVulkanCompute
-        )
+        if (isModelInitialized.get()) {
+            Log.d("NcnnNativeBridge", "Model already initialized, skipping duplicate init")
+            return true
+        }
+
+        synchronized(this) {
+            if (isModelInitialized.get()) {
+                Log.d("NcnnNativeBridge", "Model already initialized, skipping duplicate init")
+                return true
+            }
+
+            val success = initModelNative(
+                assetManager,
+                config.encoderParam,
+                config.encoderBin,
+                config.decoderParam,
+                config.decoderBin,
+                config.joinerParam,
+                config.joinerBin,
+                config.tokens,
+                config.numThreads,
+                config.useVulkanCompute
+            )
+            if (success) {
+                isModelInitialized.set(true)
+            }
+            return success
+        }
     }
 
     private external fun initModelNative(

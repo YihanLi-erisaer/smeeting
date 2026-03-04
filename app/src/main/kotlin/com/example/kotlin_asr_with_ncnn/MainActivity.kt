@@ -1,6 +1,7 @@
 package com.example.kotlin_asr_with_ncnn
 
 import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -8,12 +9,14 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.core.content.ContextCompat
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,6 +37,7 @@ class MainActivity : ComponentActivity() {
     lateinit var nativeBridge: NcnnNativeBridge
 
     private val viewModel: ASRViewModel by viewModels()
+    private val mainUiViewModel: MainUiViewModel by viewModels()
     private lateinit var themePreferences: ThemePreferences
 
     // Audio recording permission request
@@ -51,15 +55,18 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         themePreferences = ThemePreferences(this)
 
-        // Request audio recording permission
-        requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        if (hasAudioPermission()) {
+            initASRModel()
+        } else {
+            requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
 
         setContent {
             var darkTheme by remember { mutableStateOf(themePreferences.darkTheme) }
-            var showSettings by remember { mutableStateOf(false) }
+            val showSettings by mainUiViewModel.showSettings.collectAsState()
 
             BackHandler(enabled = showSettings) {
-                showSettings = false
+                mainUiViewModel.closeSettings()
             }
 
             AppTheme(darkTheme = darkTheme) {
@@ -84,12 +91,12 @@ class MainActivity : ComponentActivity() {
                                     darkTheme = it
                                     themePreferences.darkTheme = it
                                 },
-                                onBack = { showSettings = false }
+                                onBack = { mainUiViewModel.closeSettings() }
                             )
                         } else {
                             ASRScreen(
                                 viewModel = viewModel,
-                                onSettingsClick = { showSettings = true }
+                                onSettingsClick = { mainUiViewModel.openSettings() }
                             )
                         }
                     }
@@ -125,5 +132,12 @@ class MainActivity : ComponentActivity() {
         } catch (e: Exception) {
             Log.e("MainActivity", "Exception during ASR initialization", e)
         }
+    }
+
+    private fun hasAudioPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
     }
 }
