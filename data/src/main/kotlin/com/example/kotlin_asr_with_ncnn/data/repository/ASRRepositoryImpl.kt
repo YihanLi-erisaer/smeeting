@@ -15,6 +15,41 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/** Punctuation handling for ASR output. Detects script (CJK vs Latin) and applies appropriate punctuation. */
+private object PunctuationHelper {
+    private val SENTENCE_ENDING = setOf('。', '.', '?', '!', '？', '！', '…')
+
+    fun endsWithSentencePunctuation(text: String): Boolean =
+        text.isNotEmpty() && SENTENCE_ENDING.any { text.trimEnd().endsWith(it) }
+
+    /** Heuristic: text is CJK if a significant share of letters are in CJK ranges */
+    fun isPrimarilyCJK(text: String): Boolean {
+        if (text.isBlank()) return false
+        var cjkCount = 0
+        var letterCount = 0
+        for (c in text) {
+            when {
+                c in '\u4e00'..'\u9fff' -> { cjkCount++; letterCount++ } // CJK unified
+                c in '\u3000'..'\u303f' -> { cjkCount++; letterCount++ } // CJK punctuation
+                c in '\uff00'..'\uffef' -> { cjkCount++; letterCount++ } // Fullwidth
+                c.isLetter() -> letterCount++
+            }
+        }
+        return letterCount > 0 && cjkCount.toFloat() / letterCount >= 0.2
+    }
+
+    fun getSentenceSeparator(isCJK: Boolean): String = if (isCJK) "。" else ". "
+    fun getEndPunctuation(isCJK: Boolean): String = if (isCJK) "。" else "."
+}
+
+private fun buildDisplayWithPartial(accumulated: String, partial: String): String {
+    val combined = accumulated + partial
+    val isCJK = PunctuationHelper.isPrimarilyCJK(combined)
+    val sep = PunctuationHelper.getSentenceSeparator(isCJK)
+    val acc = accumulated.trimEnd()
+    return if (acc.isEmpty()) partial else "$acc$sep${partial.trim()}"
+}
+
 @Singleton
 class ASRRepositoryImpl @Inject constructor(
     private val nativeBridge: NcnnNativeBridge,
@@ -46,8 +81,19 @@ class ASRRepositoryImpl @Inject constructor(
             if (text.isEmpty()) return@setCallback
 
             val displayText = if (isFinal) {
-                if (accumulatedText.isNotEmpty()) accumulatedText.append(", ")
-                accumulatedText.append(text)
+                val sep = PunctuationHelper.getSentenceSeparator(
+                    PunctuationHelper.isPrimarilyCJK(accumulatedText.toString() + text)
+                )
+                if (accumulatedText.isNotEmpty()) {
+                    val prev = accumulatedText.toString().trimEnd()
+                    if (!PunctuationHelper.endsWithSentencePunctuation(prev)) {
+                        accumulatedText.append(PunctuationHelper.getEndPunctuation(
+                            PunctuationHelper.isPrimarilyCJK(prev)
+                        ))
+                    }
+                    accumulatedText.append(sep)
+                }
+                accumulatedText.append(text.trim())
                 currentUtterance = ""
                 accumulatedText.toString()
             } else {
@@ -57,12 +103,24 @@ class ASRRepositoryImpl @Inject constructor(
                     !text.startsWith(currentUtterance) &&
                     !currentUtterance.startsWith(text)
                 if (isNewUtterance) {
-                    if (accumulatedText.isNotEmpty()) accumulatedText.append(", ")
-                    accumulatedText.append(currentUtterance)
+                    val toAppend = currentUtterance.trim()
+                    val isCJK = PunctuationHelper.isPrimarilyCJK(accumulatedText.toString() + toAppend)
+                    val sep = PunctuationHelper.getSentenceSeparator(isCJK)
+                    if (accumulatedText.isNotEmpty()) {
+                        val prev = accumulatedText.toString().trimEnd()
+                        if (!PunctuationHelper.endsWithSentencePunctuation(prev)) {
+                            accumulatedText.append(PunctuationHelper.getEndPunctuation(isCJK))
+                        }
+                        accumulatedText.append(sep)
+                    }
+                    accumulatedText.append(toAppend)
                     currentUtterance = ""
                 }
                 currentUtterance = text
-                if (accumulatedText.isEmpty()) text else "$accumulatedText, $text"
+                val full = if (accumulatedText.isEmpty()) text else buildDisplayWithPartial(
+                    accumulatedText.toString(), text
+                )
+                full
             }
 
             val newTranscription = Transcription(
@@ -101,13 +159,20 @@ class ASRRepositoryImpl @Inject constructor(
         withContext(Dispatchers.Default) {
             nativeBridge.signalInputFinished()
             nativeBridge.stopInference()
-            // Append full stop when user presses Stop, if there is output and it doesn't already end with .
-            val fullText = (accumulatedText.toString() + if (currentUtterance.isNotEmpty()) " $currentUtterance" else "").trim()
-            if (fullText.isNotEmpty() && !fullText.endsWith('.')) {
-                val textWithPeriod = "$fullText。"
+            // Append end punctuation when user presses Stop, if output exists and doesn't already end with one
+            val fullText = (accumulatedText.toString() + if (currentUtterance.isNotEmpty()) {
+                val sep = PunctuationHelper.getSentenceSeparator(
+                    PunctuationHelper.isPrimarilyCJK(accumulatedText.toString() + currentUtterance)
+                )
+                sep + currentUtterance.trim()
+            } else "").trim()
+            if (fullText.isNotEmpty() && !PunctuationHelper.endsWithSentencePunctuation(fullText)) {
+                val isCJK = PunctuationHelper.isPrimarilyCJK(fullText)
+                val endPunct = PunctuationHelper.getEndPunctuation(isCJK)
+                val textWithEnding = "$fullText$endPunct"
                 accumulatedText.clear()
-                accumulatedText.append(textWithPeriod)
-                _transcriptionFlow.tryEmit(Transcription("stop", textWithPeriod, 0f, System.currentTimeMillis(), true))
+                accumulatedText.append(textWithEnding)
+                _transcriptionFlow.tryEmit(Transcription("stop", textWithEnding, 0f, System.currentTimeMillis(), true))
             }
             Log.d(TAG, "Streaming inference completed")
         }
