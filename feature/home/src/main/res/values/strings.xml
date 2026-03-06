@@ -1,6 +1,10 @@
 <resources>
     <string name="result_title">Result text</string>
     <string name="press_start_hint">Press Start button to start</string>
+    <string name="loading_model">Loading model…</string>
+    <string name="loading_model_please_wait">Please wait…</string>
+    <string name="model_error_title">Model error</string>
+    <string name="permission_required">Microphone permission required</string>
     <string name="recording">Recording...</string>
     <string name="start">Start</string>
     <string name="stop">Stop</string>

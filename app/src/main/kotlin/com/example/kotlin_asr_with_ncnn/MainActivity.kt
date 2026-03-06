@@ -19,6 +19,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.lifecycle.lifecycleScope
 import com.example.kotlin_asr_with_ncnn.core.media.ModelConfig
 import com.example.kotlin_asr_with_ncnn.core.media.NcnnNativeBridge
 import com.example.kotlin_asr_with_ncnn.core.ui.AppTheme
@@ -27,6 +28,9 @@ import com.example.kotlin_asr_with_ncnn.feature.home.ASRScreen
 import com.example.kotlin_asr_with_ncnn.feature.home.ASRViewModel
 import com.example.kotlin_asr_with_ncnn.feature.settings.SettingsScreen
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -49,6 +53,7 @@ class MainActivity : ComponentActivity() {
             initASRModel()
         } else {
             Log.e("MainActivity", "Audio recording permission denied")
+            mainUiViewModel.setModelInitResult(success = false, "Microphone permission required")
         }
     }
 
@@ -96,8 +101,11 @@ class MainActivity : ComponentActivity() {
                                 onBack = { mainUiViewModel.closeSettings() }
                             )
                         } else {
+                            val modelInitState by mainUiViewModel.modelInitState.collectAsState()
                             ASRScreen(
                                 viewModel = viewModel,
+                                isModelLoading = modelInitState is ModelInitState.Loading,
+                                modelErrorMessage = (modelInitState as? ModelInitState.Error)?.message,
                                 onSettingsClick = { mainUiViewModel.openSettings() }
                             )
                         }
@@ -108,31 +116,36 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun initASRModel() {
-        try {
-            // Note: These paths must be relative to the assets/ folder root
-            val modelConfig = ModelConfig(
-                encoderParam = "encoder.param",
-                encoderBin = "encoder.bin",
-                decoderParam = "decoder.param",
-                decoderBin = "decoder.bin",
-                joinerParam = "joiner.param",
-                joinerBin = "joiner.bin",
-                tokens = "tokens.txt",
-                numThreads = 4,
-                useVulkanCompute = false 
-            )
-            
-            Log.d("MainActivity", "Attempting to initialize native ASR model...")
-            val success = nativeBridge.initModel(assets, modelConfig)
-            
-            if (success) {
-                Log.i("MainActivity", "ASR Model initialized successfully")
-                // Start inference if needed or wait for user action
-            } else {
-                Log.e("MainActivity", "Failed to initialize ASR Model. Check logcat (tag: NcnnASR-Native) for detailed error messages.")
+        lifecycleScope.launch(Dispatchers.Default) {
+            try {
+                val modelConfig = ModelConfig(
+                    encoderParam = "encoder.param",
+                    encoderBin = "encoder.bin",
+                    decoderParam = "decoder.param",
+                    decoderBin = "decoder.bin",
+                    joinerParam = "joiner.param",
+                    joinerBin = "joiner.bin",
+                    tokens = "tokens.txt",
+                    numThreads = 4,
+                    useVulkanCompute = false
+                )
+                Log.d("MainActivity", "Attempting to initialize native ASR model (background)...")
+                val success = nativeBridge.initModel(assets, modelConfig)
+                withContext(Dispatchers.Main) {
+                    if (success) {
+                        Log.i("MainActivity", "ASR Model initialized successfully")
+                        mainUiViewModel.setModelInitResult(success = true)
+                    } else {
+                        Log.e("MainActivity", "Failed to initialize ASR Model.")
+                        mainUiViewModel.setModelInitResult(success = false, "Model failed to load")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Exception during ASR initialization", e)
+                withContext(Dispatchers.Main) {
+                    mainUiViewModel.setModelInitResult(success = false, e.message ?: "Unknown error")
+                }
             }
-        } catch (e: Exception) {
-            Log.e("MainActivity", "Exception during ASR initialization", e)
         }
     }
 

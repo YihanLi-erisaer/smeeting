@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.collectLatest
 @Composable
 fun ASRScreen(
     viewModel: ASRViewModel,
+    isModelLoading: Boolean = false,
+    modelErrorMessage: String? = null,
     onSettingsClick: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -45,10 +47,11 @@ fun ASRScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = if (uiState.isListening) {
-                    stringResource(R.string.result_title)
-                } else {
-                    stringResource(R.string.press_start_hint)
+                text = when {
+                    isModelLoading -> stringResource(R.string.loading_model)
+                    modelErrorMessage != null -> stringResource(R.string.model_error_title)
+                    uiState.isListening -> stringResource(R.string.result_title)
+                    else -> stringResource(R.string.press_start_hint)
                 },
                 style = MaterialTheme.typography.titleMedium
             )
@@ -67,6 +70,8 @@ fun ASRScreen(
                 ) {
                     Text(
                         text = when {
+                            isModelLoading -> stringResource(R.string.loading_model_please_wait)
+                            modelErrorMessage != null -> modelErrorMessage
                             uiState.isListening && uiState.resultText.isBlank() -> stringResource(R.string.recording)
                             else -> uiState.resultText
                         },
@@ -85,7 +90,8 @@ fun ASRScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Button(
-                    onClick = { viewModel.onIntent(ASRContract.Intent.ToggleListening) }
+                    onClick = { viewModel.onIntent(ASRContract.Intent.ToggleListening) },
+                    enabled = !isModelLoading && modelErrorMessage == null
                 ) {
                     Text(
                         text = if (uiState.isListening) {

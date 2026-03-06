@@ -1,6 +1,10 @@
 <resources>
     <string name="result_title">识别结果</string>
     <string name="press_start_hint">点击开始按钮开始识别</string>
+    <string name="loading_model">加载模型中…</string>
+    <string name="loading_model_please_wait">请稍候…</string>
+    <string name="model_error_title">模型错误</string>
+    <string name="permission_required">需要麦克风权限</string>
     <string name="recording">录音中...</string>
     <string name="start">开始</string>
     <string name="stop">停止</string>
