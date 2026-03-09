@@ -17,8 +17,15 @@ set(ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../../..)
 set(NCNN_JNILIBS ${CMAKE_CURRENT_SOURCE_DIR}/jniLibs/${ANDROID_ABI}/libncnn.a)
 set(NCNN_VULKAN_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ncnn-20260113-android-vulkan/${ANDROID_ABI})
 
-set(NCNN_SRC_DIR ${ROOT_DIR}/sherpa-ncnn/build-android-arm64-v8a/_deps/ncnn-src/src)
-set(NCNN_BUILD_SRC ${ROOT_DIR}/sherpa-ncnn/build-android-arm64-v8a/_deps/ncnn-build/src)
+# sherpa-ncnn's folder name for armeabi-v7a build is "armv7-eabi".
+if(ANDROID_ABI STREQUAL "armeabi-v7a")
+  set(SHERPA_BUILD_ABI armv7-eabi)
+else()
+  set(SHERPA_BUILD_ABI ${ANDROID_ABI})
+endif()
+
+set(NCNN_SRC_DIR ${ROOT_DIR}/sherpa-ncnn/build-android-${SHERPA_BUILD_ABI}/_deps/ncnn-src/src)
+set(NCNN_BUILD_SRC ${ROOT_DIR}/sherpa-ncnn/build-android-${SHERPA_BUILD_ABI}/_deps/ncnn-build/src)
 if(EXISTS "${NCNN_JNILIBS}" AND EXISTS "${NCNN_SRC_DIR}" AND EXISTS "${NCNN_BUILD_SRC}")
   set(NCNN_INCLUDE ${NCNN_BUILD_SRC} ${NCNN_SRC_DIR})  # platform.h is in build dir
   message(STATUS "Using sherpa-ncnn's libncnn.a (non-Vulkan) from jniLibs")

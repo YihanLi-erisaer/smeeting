@@ -22,16 +22,21 @@ From the **repo root** (parent of `sherpa-ncnn` and `core`):
 
 chmod +x scripts/build_sherpa_ncnn_and_copy_to_app.sh
 ./scripts/build_sherpa_ncnn_and_copy_to_app.sh
+# For armeabi-v7a:
+./scripts/build_sherpa_ncnn_and_copy_to_app.sh armeabi-v7a
 ```
 
 Then rebuild the Android app in Android Studio / Gradle.
 
 ### Option 2: Manual
 
-1. In `sherpa-ncnn`, open `build-android-arm64-v8a.sh` and ensure it uses `-DBUILD_SHARED_LIBS=OFF` (it’s already set for this project).
-2. Set `ANDROID_NDK` and run: `./build-android-arm64-v8a.sh`
+1. In `sherpa-ncnn`, open the ABI script and ensure it uses `-DBUILD_SHARED_LIBS=OFF` (already set in this project for arm64).
+2. Set `ANDROID_NDK` and run:
+   - `./build-android-arm64-v8a.sh`
+   - or `./build-android-armv7-eabi.sh`
 3. Copy (or merge) the built static lib(s) into this folder:
    - `sherpa-ncnn/build-android-arm64-v8a/lib/libsherpa-ncnn-core.a` → here as `libsherpa-ncnn-core.a`
+   - `sherpa-ncnn/build-android-armv7-eabi/lib/libsherpa-ncnn-core.a` → `jniLibs/armeabi-v7a/libsherpa-ncnn-core.a`
    - If the app fails to link with undefined references to kaldifst/fst, merge all `.a` from that `lib/` (except ncnn/kaldi/kissfft) into one `libsherpa-ncnn-core.a` with `libtool -static` and put the result here.
 
 Create `arm64-v8a` (and optionally `armeabi-v7a`, `x86_64`) under `jniLibs/` and place the `.a` files in the matching ABI folder.
