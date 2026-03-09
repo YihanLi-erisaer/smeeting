@@ -19,6 +19,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.lifecycleScope
 import com.example.kotlin_asr_with_ncnn.core.media.ModelConfig
 import com.example.kotlin_asr_with_ncnn.core.media.NcnnNativeBridge
@@ -67,9 +68,11 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
+            val darkTheme by themePreferences.darkThemeFlow.collectAsState(initial = false)
+            val scope = rememberCoroutineScope()
             val themeState = rememberThemeState(
-                initialDarkTheme = themePreferences.darkTheme,
-                onThemeChanged = { themePreferences.darkTheme = it }
+                initialDarkTheme = darkTheme,
+                onThemeChanged = { scope.launch { themePreferences.setDarkTheme(it) } }
             )
             val showSettings by mainUiViewModel.showSettings.collectAsState()
             val appVersion = remember { getAppVersion() }
