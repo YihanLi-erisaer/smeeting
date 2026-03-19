@@ -68,7 +68,7 @@ private object PunctuationHelper {
         val looksLikeQuestion = when {
             isCJK -> {
                 // Chinese: interrogative particles at end
-                trimmed.endsWith('吗') || trimmed.endsWith('呢') || trimmed.endsWith('吧') ||
+                trimmed.endsWith('吗') || trimmed.endsWith('呢') ||
                 (trimmed.endsWith('啊') && trimmed.length > 1) ||
                 // Interrogative pronouns
                 trimmed.contains("什么") || trimmed.contains("怎么") || trimmed.contains("怎样") ||
@@ -95,7 +95,7 @@ private object PunctuationHelper {
         // Short fragment: use comma when text is very short (possible mid-sentence pause)
         val wordCount = trimmed.split(Regex("\\s+")).count { it.isNotEmpty() }
         val charCount = trimmed.length
-        val isShortFragment = if (isCJK) charCount <= 4 else wordCount <= 2
+        val isShortFragment = if (isCJK) charCount <= 6 else wordCount <= 5
         if (isShortFragment) return if (isCJK) "，" else ", "
 
         // Default: period
