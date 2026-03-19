@@ -216,8 +216,8 @@ Java_com_example_kotlin_1asr_1with_1ncnn_core_media_NcnnNativeBridge_initModelNa
     //config.decoder_config.num_active_paths = 6;
 
     config.enable_endpoint = true;
-    config.endpoint_config.rule1.min_trailing_silence = 1;
-    config.endpoint_config.rule2.min_trailing_silence = 0.5;
+    config.endpoint_config.rule1.min_trailing_silence = 1.1;
+    config.endpoint_config.rule2.min_trailing_silence = 0.6;
     config.endpoint_config.rule3.min_utterance_length = 5;
 
     if (g_recognizer) {
