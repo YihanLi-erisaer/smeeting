@@ -85,16 +85,7 @@ Audio Input → Feature Extraction → Zipformer Encoder → Decoder → Text Ou
 ## ⚡ Key Technical Insights
 
 ### 🧠 Why Zipformer is Better
-
-Compared to traditional models:
-
-| Model       | 특징              |
-| ----------- | --------------- |
-| Transformer | 强建模能力，但计算成本高    |
-| Conformer   | 加入卷积，但仍较重       |
-| ⭐ Zipformer | 更快、更省内存、更适合实际部署 |
-
-👉 Zipformer uses:
+Zipformer uses:
 
 * Multi-resolution modeling
 * Efficient normalization (BiasNorm)
