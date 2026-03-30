@@ -3,6 +3,6 @@
     <string name="back">Back</string>
     <string name="dark_theme">Dark theme</string>
     <string name="beam_search">Beam search</string>
-    <string name="beam_search_subtitle">Default Greedy search. On: modified beam search, often slower and higher accuracy.</string>
+    <string name="beam_search_subtitle">Default Greedy search. On: modified beam search, often slower with higher accuracy.</string>
     <string name="app_version">App version</string>
 </resources>
