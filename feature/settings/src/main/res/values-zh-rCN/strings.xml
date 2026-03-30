@@ -3,6 +3,6 @@
     <string name="back">返回</string>
     <string name="dark_theme">深色主题</string>
     <string name="beam_search">束搜索</string>
-    <string name="beam_search_subtitle">默认贪心搜索。打开时：修改波束搜索，通常较慢。</string>
+    <string name="beam_search_subtitle">默认贪心搜索。打开时：修改波束搜索，通常较慢准确度较高。</string>
     <string name="app_version">应用版本</string>
 </resources>
