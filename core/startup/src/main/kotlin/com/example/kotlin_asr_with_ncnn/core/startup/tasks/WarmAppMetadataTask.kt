@@ -1,9 +1,9 @@
-package com.example.kotlin_asr_with_ncnn.startup.tasks
+package com.example.kotlin_asr_with_ncnn.core.startup.tasks
 
 import android.app.Application
 import com.example.kotlin_asr_with_ncnn.core.startup.StartupLogger
 import com.example.kotlin_asr_with_ncnn.core.startup.StartupTask
-import com.example.kotlin_asr_with_ncnn.startup.StartupTaskIds
+import com.example.kotlin_asr_with_ncnn.core.startup.StartupTaskIds
 
 /**
  * Reads app metadata unrelated to ASR — parallel with prefs + logging roots.

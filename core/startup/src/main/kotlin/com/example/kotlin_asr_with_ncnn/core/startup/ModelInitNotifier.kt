@@ -1,4 +1,4 @@
-package com.example.kotlin_asr_with_ncnn.startup
+package com.example.kotlin_asr_with_ncnn.core.startup
 
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow

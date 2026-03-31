@@ -1,4 +1,4 @@
-package com.example.kotlin_asr_with_ncnn.startup
+package com.example.kotlin_asr_with_ncnn.core.startup
 
 object StartupTaskIds {
     const val INIT_LOGGING = "init_logging"

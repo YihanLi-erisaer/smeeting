@@ -1,6 +1,5 @@
-package com.example.kotlin_asr_with_ncnn.startup
+package com.example.kotlin_asr_with_ncnn.core.startup
 
-import android.content.res.AssetManager
 import com.example.kotlin_asr_with_ncnn.core.media.ModelConfig
 import com.example.kotlin_asr_with_ncnn.core.media.NcnnNativeBridge
 import kotlinx.coroutines.Dispatchers
@@ -10,7 +9,7 @@ object AsrModelLoad {
 
     suspend fun load(
         bridge: NcnnNativeBridge,
-        assets: AssetManager,
+        assets: android.content.res.AssetManager,
         useBeamSearch: Boolean,
     ): Boolean = withContext(Dispatchers.Default) {
         val modelConfig = ModelConfig(

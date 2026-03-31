@@ -1,4 +1,4 @@
-package com.example.kotlin_asr_with_ncnn
+package com.example.kotlin_asr_with_ncnn.core.common
 
 import android.content.Context
 import androidx.datastore.core.DataStore

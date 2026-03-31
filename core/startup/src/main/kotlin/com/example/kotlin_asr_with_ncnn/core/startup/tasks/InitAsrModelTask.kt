@@ -1,4 +1,4 @@
-package com.example.kotlin_asr_with_ncnn.startup.tasks
+package com.example.kotlin_asr_with_ncnn.core.startup.tasks
 
 import android.Manifest
 import android.app.Application
@@ -7,10 +7,10 @@ import androidx.core.content.ContextCompat
 import com.example.kotlin_asr_with_ncnn.core.media.NcnnNativeBridge
 import com.example.kotlin_asr_with_ncnn.core.startup.StartupLogger
 import com.example.kotlin_asr_with_ncnn.core.startup.StartupTask
-import com.example.kotlin_asr_with_ncnn.startup.AsrModelLoad
-import com.example.kotlin_asr_with_ncnn.startup.ModelInitNotifier
-import com.example.kotlin_asr_with_ncnn.startup.StartupPreferenceCache
-import com.example.kotlin_asr_with_ncnn.startup.StartupTaskIds
+import com.example.kotlin_asr_with_ncnn.core.startup.AsrModelLoad
+import com.example.kotlin_asr_with_ncnn.core.startup.ModelInitNotifier
+import com.example.kotlin_asr_with_ncnn.core.startup.StartupPreferenceCache
+import com.example.kotlin_asr_with_ncnn.core.startup.StartupTaskIds
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

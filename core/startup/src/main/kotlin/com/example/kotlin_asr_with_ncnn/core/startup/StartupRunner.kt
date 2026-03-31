@@ -1,27 +1,20 @@
-package com.example.kotlin_asr_with_ncnn.startup
+package com.example.kotlin_asr_with_ncnn.core.startup
 
-import android.app.Application
-import com.example.kotlin_asr_with_ncnn.core.startup.StartupLogger
-import com.example.kotlin_asr_with_ncnn.core.startup.StartupManager
-import com.example.kotlin_asr_with_ncnn.core.startup.TaskRegistry
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.util.concurrent.atomic.AtomicBoolean
 
 object StartupRunner {
-    private val started = AtomicBoolean(false)
+    private val started = _root_ide_package_.java.util.concurrent.atomic.AtomicBoolean(false)
 
     /**
      * Runs registered startup DAG once per process, on a background dispatcher.
      * Call from a coroutine scope after the first frame (e.g. [androidx.compose.runtime.withFrameMillis]).
      */
-    fun runRegisteredPipelineOnce(application: Application, scope: CoroutineScope) {
+    fun runRegisteredPipelineOnce(application: android.app.Application, scope: kotlinx.coroutines.CoroutineScope) {
         if (!started.compareAndSet(false, true)) {
             StartupLogger.d("StartupRunner: pipeline already executed, skipping")
             return
         }
-        scope.launch(Dispatchers.Default) {
+        scope.launch(_root_ide_package_.kotlinx.coroutines.Dispatchers.Default) {
             val tasks = TaskRegistry.collectTasks()
             if (tasks.isEmpty()) {
                 StartupLogger.w("StartupRunner: no tasks in TaskRegistry")
