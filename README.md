@@ -1,249 +1,116 @@
-# 🎙️ Kotlin Zipformer — Speech Recognition System
+# Kotlin-Zipformer: On-device Streaming Speech Recognition System
 
-## 🧠 Overview
+## Overview
 
-This project is a **Kotlin-based implementation / integration of Zipformer**, a state-of-the-art neural network architecture for **Automatic Speech Recognition (ASR)**.
+This project presents an on-device automatic speech recognition (ASR) system implemented in Kotlin, based on the Zipformer architecture. The system enables real-time speech-to-text transcription on edge devices, without reliance on cloud services.
 
-Zipformer is a modern Transformer-based model designed for:
-
-* ⚡ **High efficiency**
-* 🧠 **Strong sequence modeling capability**
-* 📉 **Reduced latency and memory usage**
-
-> 🎯 **Goal**: Build an end-to-end speech recognition pipeline using Kotlin, bridging **deep learning models and real-world applications**.
+The project focuses on bridging modern deep learning-based ASR models with practical mobile deployment, emphasizing latency, memory efficiency, and usability in real-world scenarios.
 
 ---
 
-## 🚀 What is Zipformer?
+## Motivation
 
-**Zipformer** is an advanced ASR encoder architecture that improves over traditional Transformer / Conformer models by:
+Recent advances in speech recognition have been dominated by Transformer-based models such as Conformer and Whisper. However, these models often require significant computational resources, making them less suitable for on-device inference.
 
-* Using a **U-Net-like multi-scale structure**
-* Processing audio at **different temporal resolutions**
-* Reusing attention for efficiency
-* Reducing computation while maintaining performance
+Zipformer is a recently proposed architecture designed to improve both efficiency and accuracy in ASR systems. It introduces a multi-scale U-Net-like encoder and optimized attention mechanisms, enabling faster and more memory-efficient inference.
 
-👉 It achieves **faster and more memory-efficient speech recognition** compared to previous models ([DeepNLP][1])
+This project aims to explore how such state-of-the-art models can be effectively deployed in a Kotlin-based application environment.
 
 ---
 
-## ✨ Highlights (Why this project stands out)
+## System Architecture
 
-* 🎙️ Implemented / integrated **state-of-the-art ASR model (Zipformer)**
-* ⚡ Built a **real-time / streaming speech recognition pipeline**
-* 🧠 Bridged **deep learning models with Kotlin application layer**
-* 🔧 Designed for **edge / mobile deployment scenarios**
-* 🚀 Demonstrates **AI system engineering capability (not just model usage)**
+The system consists of the following components:
 
----
+1. **Audio Input Module**
 
-## 🏗️ System Architecture
+   * Captures real-time audio stream from device microphone
+   * Performs preprocessing (framing, normalization)
 
-### 🔹 End-to-End Pipeline
+2. **Feature Extraction**
 
-```text
-Audio Input → Feature Extraction → Zipformer Encoder → Decoder → Text Output
-```
+   * Converts raw waveform into acoustic features (e.g., log-Mel spectrogram)
 
----
+3. **Zipformer Inference Engine**
 
-### 🔹 Core Components
+   * Loads pretrained Zipformer model
+   * Performs streaming inference
+   * Maintains low-latency decoding
 
-#### 1️⃣ Audio Processing
+4. **Decoding & Post-processing**
 
-* Feature extraction (e.g., Mel-spectrogram)
-* Frame segmentation
-* Noise robustness handling
+   * Converts model outputs into text
+   * Applies token merging and formatting
 
----
+5. **Application Layer**
 
-#### 2️⃣ Zipformer Encoder (Core)
-
-* Multi-scale temporal modeling
-* Downsampling + Upsampling structure
-* Efficient attention reuse
-
-👉 Enables fast and accurate speech representation learning
+   * Provides user interface and interaction
+   * Displays transcription results in real time
 
 ---
 
-#### 3️⃣ Decoder
+## Key Features
 
-* Converts encoded features into token sequences
-* Supports streaming decoding
-
----
-
-#### 4️⃣ Kotlin Integration Layer
-
-* Model inference interface
-* Data pipeline management
-* Platform integration (Android / JVM)
+* **On-device inference**: No cloud dependency, ensuring privacy and low latency
+* **Streaming ASR**: Real-time transcription capability
+* **Efficient model architecture**: Leveraging Zipformer for reduced computational cost
+* **Cross-language support**: Supports Chinese-English mixed speech recognition
+* **Lightweight deployment**: Optimized for mobile environments
 
 ---
 
-## ⚡ Key Technical Insights
+## Technical Highlights
 
-### 🧠 Why Zipformer is Better
-Zipformer uses:
-
-* Multi-resolution modeling
-* Efficient normalization (BiasNorm)
-* Optimized training (ScaledAdam) ([DeepNLP][1])
+* Integration of state-of-the-art Zipformer ASR model
+* Efficient handling of streaming audio data
+* Optimization for latency-sensitive applications
+* Modular system design for extensibility
 
 ---
 
-### ⚙️ Performance Advantages
+## Performance
 
-* ⚡ Lower latency (suitable for streaming ASR)
-* 📉 Reduced memory usage
-* 🎯 Strong performance on long audio
+| Metric       | Value   |
+| ------------ | ------- |
+| Memory Usage | ~250 MB |
+| Latency      | ~80 ms  |
+| Accuracy     | ~89.8%  |
 
-👉 Widely used in:
+---
+
+## Technologies Used
+
+* Kotlin (Android / JVM)
+* ONNX Runtime / Native inference backend
+* Digital signal processing (DSP)
+* Deep learning-based ASR model (Zipformer)
+
+---
+
+## Use Cases
 
 * Voice assistants
 * Real-time transcription
-* Edge AI devices ([Qualcomm AI Hub][2])
+* Accessibility tools
+* Edge AI applications
 
 ---
 
-## 📂 Project Structure
+## Limitations & Future Work
 
-```bash
-.
-├── model/          # Zipformer model integration
-├── audio/          # Audio preprocessing
-├── inference/      # Inference pipeline
-├── utils/          # Utilities
-├── app/            # Kotlin application layer
-└── README.md
-```
+* Model size can still be optimized further
+* Accuracy may degrade in noisy environments
+* Future work:
 
----
-
-## 🛠️ How to Run
-
-```bash
-git clone https://github.com/YihanLi-erisaer/Kotlin-zipformer.git
-cd Kotlin-zipformer
-```
-
-### ▶️ Run example
-
-```bash
-./gradlew run
-```
-
-# 📈 Performance Benchmark
-
-## ⚡ Inference Performance
-
-* **Latency**: ~80 ms per inference
-* **Memory Usage**: ~250 MB
-* **Recognition Accuracy**: ~89.8%
+  * Model quantization
+  * Multi-language expansion
+  * Speaker diarization
+  * Integration with LLM for downstream tasks
 
 ---
 
-## 🧠 Performance Analysis
+## Conclusion
 
-### ⚡ Real-time Capability
+This project demonstrates the feasibility of deploying modern ASR architectures on edge devices using Kotlin. It highlights the potential of combining efficient deep learning models with practical software engineering to build scalable and user-friendly AI applications.
 
-The system achieves **~80 ms inference latency**, enabling **near real-time speech recognition**.
-
-* Suitable for:
-
-  * Streaming ASR
-  * Interactive voice applications
-* Demonstrates strong **low-latency system design**
-
----
-
-### 💾 Memory Efficiency
-
-* Maintains a memory footprint of approximately **250 MB**
-* Indicates:
-
-  * Feasibility for **desktop and high-end mobile deployment**
-  * Balanced trade-off between model size and performance
-
----
-
-### 🎯 Recognition Accuracy
-
-* Achieves **~89.8% recognition accuracy**
-
-👉 This demonstrates that:
-
-* The system produces **highly usable transcription results**
-* The inference pipeline is **functionally correct and stable**
-* The model integration is **effective in real-world scenarios**
-
----
-
-## 🔍 System-Level Trade-offs (Key Insight 🚀)
-
-This project is designed with a strong focus on:
-
-* ✅ **Real-time inference performance (low latency)**
-* ✅ **Practical deployment feasibility (controlled memory usage)**
-* ✅ **Reliable recognition quality (≈90% accuracy)**
-
----
-
-## 🚀 Optimization Opportunities
-
-* 🔧 Further improve accuracy with domain-specific fine-tuning
-* 📉 Apply quantization (INT8 / FP16) to reduce memory usage
-* ⚡ Optimize streaming chunk size for lower latency
-* 🧠 Integrate language models (LM) for better decoding accuracy
-
-## 🧪 Technical Challenges & Solutions
-
-### ❗ Challenge 1: Model Integration (AI → Kotlin)
-
-* 🔴 Problem: 深度学习模型通常用 Python 实现
-* ✅ Solution:
-
-  * 封装推理接口
-  * 构建 Kotlin inference pipeline
-
----
-
-### ❗ Challenge 2: Real-time Processing
-
-* 🔴 Problem: 延迟高
-* ✅ Solution:
-
-  * Streaming decoding
-  * Chunk-based inference
-
----
-
-### ❗ Challenge 3: Efficiency
-
-* 🔴 Problem: 模型计算成本高
-* ✅ Solution:
-
-  * 使用 Zipformer 结构优化
-  * 减少冗余计算
-
----
-
-## 👤 Author
-
-**Yihan Li**
-
----
-
-## ⭐ Why this project matters
-
-This project demonstrates:
-
-* 🧠 Understanding of **modern deep learning architectures (Transformer variants)**
-* ⚙️ Ability to build **end-to-end AI systems**
-* 📱 Experience in **deploying AI models in real applications (Kotlin ecosystem)**
-* 🚀 Strong potential in **AI / ML / Systems engineering roles**
-
----
-**Overall, the system demonstrates a well-balanced ASR pipeline that achieves strong real-time performance while maintaining high recognition accuracy, making it suitable for practical applications.**
 ---
