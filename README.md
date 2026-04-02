@@ -17,6 +17,29 @@ Zipformer is a recently proposed architecture designed to improve both efficienc
 This project aims to explore how such state-of-the-art models can be effectively deployed in a Kotlin-based application environment.
 
 ---
+## How to Use
+
+This section provides instructions for running the Kotlin-Zipformer on-device ASR system.
+
+### 1. Prerequisites
+
+- **Operating System:** Android 10+ / JVM compatible OS  
+- **Kotlin Version:** 1.8+  
+- **Dependencies:**  
+  - ONNX Runtime (for model inference)  
+  - Gradle 7.0+  
+  - Optional: Audio recording permissions on mobile devices  
+
+---
+
+### 2. Clone the Repository
+
+```bash
+git clone https://github.com/YihanLi-erisaer/Kotlin-zipformer.git
+cd Kotlin-zipformer
+git clone https://github.com/k2-fsa/sherpa-ncnn.git
+```
+---
 
 ## System Architecture
 
