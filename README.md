@@ -137,3 +137,8 @@ The system consists of the following components:
 This project demonstrates the feasibility of deploying modern ASR architectures on edge devices using Kotlin. It highlights the potential of combining efficient deep learning models with practical software engineering to build scalable and user-friendly AI applications.
 
 ---
+
+## References
+[sherpa_ncnn](https://github.com/k2-fsa/sherpa-ncnn)
+
+---
