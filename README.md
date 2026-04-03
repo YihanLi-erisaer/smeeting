@@ -89,29 +89,22 @@ The system consists of the following components:
 * Optimization for latency-sensitive applications
 * Modular system design for extensibility
 * Start up optimization
-```mermaid
-flowchart LR
-    subgraph App Startup
-        A[App launch] --> B[Init UI]
-        B --> C[Background init coroutines]
-    end
+Kotlin-Zipformer implements an **on-device ASR system** optimized for **low-latency and minimal memory usage**. The startup process is organized into three stages:
 
-    subgraph Model & ASR Engine
-        C --> D[Check cached model]
-        D -->|Exists| E[Lazy load inference engine]
-        D -->|Not exists| F[Fetch / prepare model]
-        F --> E
-        E --> G[NCNN + Zipformer init]
-    end
+1. **Application Bootstrap**  
+   - UI launches immediately while heavy initialization runs asynchronously using **Kotlin coroutines**.  
+   - Non-critical tasks (e.g., model checks) are deferred to background threads.
 
-    subgraph Audio Pipeline Ready
-        G --> H[Audio capture setup]
-        H --> I[Feature extractor hotstart]
-        I --> J[Streaming buffer init]
-        J --> K[Ready for real-time ASR]
-    end
+2. **Model & Engine Setup**  
+   - **Lazy initialization** of Sherpa-NCNN + Zipformer engine.  
+   - Local **model caching** avoids redundant loading.  
+   - Asynchronous setup minimizes startup latency (~250MB memory).
 
-    B --> K
+3. **Audio Pipeline Prewarming**  
+   - Microphone and feature extraction pipelines are preloaded.  
+   - Streaming buffers allocated in advance for **real-time first-frame processing**.
+
+> **Result:** Fast app launch, low-latency inference, and ready-to-use real-time ASR on mobile or edge devices.
 ---
 
 ## Performance
