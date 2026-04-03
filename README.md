@@ -161,6 +161,7 @@ The system consists of the following components:
   * Multi-language expansion
   * Speaker diarization
   * Integration with LLM for downstream tasks
+  * Make model inferencing by GPU
 
 ---
 
