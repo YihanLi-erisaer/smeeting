@@ -1,5 +1,5 @@
 <resources>
-    <string name="settings_title">设置</string>
+    <string name="history_title">转述历史</string>
     <string name="back">返回</string>
     <string name="dark_theme">深色主题</string>
     <string name="beam_search">束搜索</string>

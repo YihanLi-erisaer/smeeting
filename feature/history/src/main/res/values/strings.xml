@@ -1,5 +1,5 @@
 <resources>
-    <string name="settings_title">Settings</string>
+    <string name="history_title">Trascribtion History</string>
     <string name="back">Back</string>
     <string name="dark_theme">Dark theme</string>
     <string name="beam_search">Beam search</string>

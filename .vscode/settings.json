@@ -1,0 +1,16 @@
+{
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "gradle.java.home": "C:/Users/ander/AppData/Local/Programs/Android Studio/jbr",
+  "java.import.gradle.java.home": "C:/Users/ander/AppData/Local/Programs/Android Studio/jbr",
+  "java.jdt.ls.java.home": "C:/Users/ander/AppData/Local/Programs/Android Studio/jbr",
+  "java.configuration.runtimes": [
+    {
+      "name": "JavaSE-21",
+      "path": "C:/Users/ander/AppData/Local/Programs/Android Studio/jbr",
+      "default": true
+    }
+  ],
+  "terminal.integrated.env.windows": {
+    "JAVA_HOME": "${env:LOCALAPPDATA}\\Programs\\Android Studio\\jbr"
+  }
+}

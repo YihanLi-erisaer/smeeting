@@ -21,7 +21,7 @@ fun HistoryScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(com.example.kotlin_asr_with_ncnn.feature.history.R.string.settings_title)) },
+                title = { Text(stringResource(com.example.kotlin_asr_with_ncnn.feature.history.R.string.history_title)) },
                 navigationIcon = {
                     TextButton(onClick = onBack) {
                         Text("← ${stringResource(com.example.kotlin_asr_with_ncnn.feature.history.R.string.back)}")
