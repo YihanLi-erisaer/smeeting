@@ -16,4 +16,5 @@
     <string name="copied">Copied</string>
     <string name="failed_start_listening">Failed to start listening</string>
     <string name="failed_stop_listening">Failed to stop listening</string>
+    <string name="history_open">Transcription history</string>
 </resources>

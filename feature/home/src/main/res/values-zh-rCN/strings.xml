@@ -16,4 +16,5 @@
     <string name="copied">已复制</string>
     <string name="failed_start_listening">启动录音失败</string>
     <string name="failed_stop_listening">停止录音失败</string>
+    <string name="history_open">识别历史</string>
 </resources>

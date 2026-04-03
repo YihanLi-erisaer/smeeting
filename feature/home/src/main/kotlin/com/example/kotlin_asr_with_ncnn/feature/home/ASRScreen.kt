@@ -3,6 +3,8 @@ package com.example.kotlin_asr_with_ncnn.feature.home
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.ui.res.stringResource
 import androidx.compose.material3.*
 import androidx.compose.ui.text.AnnotatedString
@@ -131,7 +133,10 @@ fun ASRScreen(
                 .align(Alignment.TopStart)
                 .padding(24.dp)
         ) {
-            Text(text = "History", style = MaterialTheme.typography.labelSmall)
+            Icon(
+                imageVector = Icons.Default.Menu,
+                contentDescription = stringResource(R.string.history_open),
+            )
         }
 
         SnackbarHost(
