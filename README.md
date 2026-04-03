@@ -88,8 +88,7 @@ The system consists of the following components:
 * Efficient handling of streaming audio data
 * Optimization for latency-sensitive applications
 * Modular system design for extensibility
-* Start up optimization
-Kotlin-Zipformer implements an **on-device ASR system** optimized for **low-latency and minimal memory usage**. The startup process is organized into three stages:
+* Start up optimization, Kotlin-Zipformer implements an **on-device ASR system** optimized for **low-latency and minimal memory usage**. The startup process is organized into three stages:
 
 1. **Application Bootstrap**  
    - UI launches immediately while heavy initialization runs asynchronously using **Kotlin coroutines**.  
@@ -121,7 +120,7 @@ Kotlin-Zipformer implements an **on-device ASR system** optimized for **low-late
 ## Technologies Used
 
 * Kotlin (Android / JVM)
-* ONNX Runtime / Native inference backend
+* sherpa-ncnn / Native inference backend
 * Digital signal processing (DSP)
 * Deep learning-based ASR model (Zipformer)
 
