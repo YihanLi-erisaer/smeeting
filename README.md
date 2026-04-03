@@ -120,6 +120,22 @@ The system consists of the following components:
 
 ---
 
+## Language support
+
+* Chinese (Simplify)
+* English
+
+---
+
+## User Interface
+
+<img width="474" height="547" alt="image" src="https://github.com/user-attachments/assets/84afa1bd-c219-4438-a57f-19551a5378b4" />
+<img width="476" height="548" alt="image" src="https://github.com/user-attachments/assets/0bc25075-c356-4eae-9934-7c48b5c1676d" />
+<img width="476" height="548" alt="image" src="https://github.com/user-attachments/assets/833ad9b8-134e-4544-b3ab-7cfa6042b9df" />
+<img width="475" height="547" alt="image" src="https://github.com/user-attachments/assets/f12f75d9-a89f-47f4-acbe-39c4b6b03475" />
+
+---
+
 ## Limitations & Future Work
 
 * Model size can still be optimized further
