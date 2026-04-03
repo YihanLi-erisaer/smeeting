@@ -19,8 +19,81 @@ import javax.inject.Singleton
 private object PunctuationHelper {
     private val SENTENCE_ENDING = setOf('。', '.', '?', '!', '？', '！', '…', '，', ',')
 
+    private val TEXT_ENDING = setOf('。', '.', '?', '!', '？', '！')
+
     fun endsWithSentencePunctuation(text: String): Boolean =
         text.isNotEmpty() && SENTENCE_ENDING.any { text.trimEnd().endsWith(it) }
+
+    fun endsWithTextEnding(text: String): Boolean {
+        val t = text.trimEnd()
+        if (t.isEmpty()) return false
+        return TEXT_ENDING.any { t.endsWith(it) }
+    }
+
+    /** Strip commas / ellipsis from the end only so Stop can finish with [TEXT_ENDING]. */
+    fun stripTrailingNonTextEndingPunctuation(text: String): String {
+        var t = text.trimEnd()
+        while (t.isNotEmpty()) {
+            val last = t.last()
+            when {
+                last == '，' || last == ',' || last == '…' -> t = t.dropLast(1).trimEnd()
+                else -> break
+            }
+        }
+        return t
+    }
+
+    /**
+     * Sentence-ending punctuation when the user presses Stop: always one of [TEXT_ENDING]
+     * (never comma), regardless of word count.
+     */
+    fun getEndPunctuationOnStop(text: String, isCJK: Boolean): String {
+        val trimmed = text.trim()
+        if (trimmed.isEmpty()) return if (isCJK) "。" else "."
+
+        val looksLikeExclamation = when {
+            isCJK -> {
+                trimmed.startsWith("太") || trimmed.startsWith("真是") ||
+                    trimmed.contains("好棒") || trimmed.contains("好啊") || trimmed.contains("好呀") ||
+                    trimmed.contains("哇") || trimmed.contains("天呐") || trimmed.contains("天哪") ||
+                    trimmed.contains("太棒") || trimmed.contains("太好了") || trimmed.contains("真棒")
+            }
+            else -> {
+                val lower = trimmed.lowercase()
+                lower.startsWith("wow") || lower.startsWith("oh ") || lower.startsWith("so ") ||
+                    lower.startsWith("such ") || lower.startsWith("what a ") ||
+                    lower.contains("how amazing") || lower.contains("how great") || lower.contains("how wonderful") ||
+                    lower.endsWith("!") || lower.contains(" amazing") || lower.contains(" great")
+            }
+        }
+        if (looksLikeExclamation) return if (isCJK) "！" else "!"
+
+        val looksLikeQuestion = when {
+            isCJK -> {
+                trimmed.endsWith('吗') || trimmed.endsWith('呢') ||
+                    trimmed.contains("什么") || trimmed.contains("怎么") || trimmed.contains("怎样") ||
+                    trimmed.contains("为什么") || trimmed.contains("为何") || trimmed.contains("哪里") ||
+                    trimmed.contains("哪儿") || trimmed.contains("谁") ||
+                    (trimmed.contains("几") && !trimmed.contains("几乎")) ||
+                    trimmed.contains("多少") || trimmed.contains("是否") || trimmed.contains("能否") ||
+                    trimmed.contains("能不能") || trimmed.contains("会不会") || trimmed.contains("是不是") ||
+                    trimmed.contains("为何") || trimmed.contains("如何")
+            }
+            else -> {
+                val lower = trimmed.lowercase()
+                lower.startsWith("what ") || lower.startsWith("why ") || lower.startsWith("how ") ||
+                    lower.startsWith("when ") || lower.startsWith("where ") || lower.startsWith("who ") ||
+                    lower.startsWith("which ") || lower.startsWith("whose ") ||
+                    lower.startsWith("is ") || lower.startsWith("are ") || lower.startsWith("can ") ||
+                    lower.startsWith("could ") || lower.startsWith("would ") || lower.startsWith("do ") ||
+                    lower.startsWith("does ") || lower.startsWith("did ") || lower.endsWith(" right") ||
+                    lower.endsWith(" or what")
+            }
+        }
+        if (looksLikeQuestion) return if (isCJK) "？" else "?"
+
+        return if (isCJK) "。" else "."
+    }
 
     /** Heuristic: text is CJK if a significant share of letters are in CJK ranges */
     fun isPrimarilyCJK(text: String): Boolean {
@@ -300,21 +373,30 @@ class ASRRepositoryImpl @Inject constructor(
         withContext(Dispatchers.Default) {
             nativeBridge.signalInputFinished()
             nativeBridge.stopInference()
-            // Append end punctuation when user presses Stop, if output exists and doesn't already end with one
+            // On Stop: always end with TEXT_ENDING (。.? ! etc.) — never comma/ellipsis, any word count.
             val fullText = (accumulatedText.toString() + if (currentUtterance.isNotEmpty()) {
                 val prev = accumulatedText.toString().trimEnd()
                 val toAppend = currentUtterance.trim()
                 val isCJK = PunctuationHelper.isPrimarilyCJK(prev + toAppend)
                 PunctuationHelper.getGlueBetween(prev, toAppend, isCJK) + toAppend
             } else "").trim()
-            if (fullText.isNotEmpty() && !PunctuationHelper.endsWithSentencePunctuation(fullText)) {
-                val isCJK = PunctuationHelper.isPrimarilyCJK(fullText)
-                val lastSegment = PunctuationHelper.getLastSegment(fullText)
-                val endPunct = PunctuationHelper.getEndPunctuation(lastSegment, isCJK)
-                val textWithEnding = toSentenceCase(ensureEnglishSpacing("$fullText$endPunct"))
-                accumulatedText.clear()
-                accumulatedText.append(textWithEnding)
-                _transcriptionFlow.tryEmit(Transcription("stop", textWithEnding, 0f, System.currentTimeMillis(), true))
+            if (fullText.isNotEmpty()) {
+                var normalized = PunctuationHelper.stripTrailingNonTextEndingPunctuation(fullText)
+                if (normalized.isNotEmpty()) {
+                    if (!PunctuationHelper.endsWithTextEnding(normalized)) {
+                        val isCJK = PunctuationHelper.isPrimarilyCJK(normalized)
+                        val lastSegment = PunctuationHelper.getLastSegment(normalized)
+                        val endPunct = PunctuationHelper.getEndPunctuationOnStop(lastSegment, isCJK)
+                        normalized += endPunct
+                    }
+                    val textWithEnding =
+                        toSentenceCase(ensureEnglishSpacing(normalized))
+                    accumulatedText.clear()
+                    accumulatedText.append(textWithEnding)
+                    _transcriptionFlow.tryEmit(
+                        Transcription("stop", textWithEnding, 0f, System.currentTimeMillis(), true),
+                    )
+                }
             }
             Log.d(TAG, "Streaming inference completed")
         }
