@@ -92,7 +92,7 @@ The system consists of the following components:
 ---
 
 ## Performance
-
+**performance on android device Helio G99 processor using armv8 libs**
 | Metric       | Value   |
 | ------------ | ------- |
 | Memory Usage | ~250 MB |
