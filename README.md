@@ -92,12 +92,13 @@ The system consists of the following components:
 ---
 
 ## Performance
-
+**performance on a android device Helio G99 processor using armv8 libs**
 | Metric       | Value   |
 | ------------ | ------- |
-| Memory Usage | ~250 MB |
-| Latency      | ~80 ms  |
-| Accuracy     | ~89.8%  |
+| Memory Usage | ~250 MB  |
+| Latency      | ~120 ms  |
+| Accuracy (in chaos environment)     | ~87%  |
+| Accuracy (in quiet environment)     | ~93%  |
 
 ---
 
