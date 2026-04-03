@@ -11,11 +11,17 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.togetherWith
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.ui.Modifier
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -122,43 +128,67 @@ class MainActivity : ComponentActivity() {
                 onThemeChanged = { scope.launch { themePreferences.setDarkTheme(it) } }
             )
             val showSettings by mainUiViewModel.showSettings.collectAsState()
+            val showHistory by mainUiViewModel.showHistory.collectAsState()
             val appVersion = remember { getAppVersion() }
 
             BackHandler(enabled = showSettings) {
                 mainUiViewModel.closeSettings()
             }
 
+            BackHandler(enabled = showHistory) {
+                mainUiViewModel.closeHistory()
+            }
+
             AppTheme(darkTheme = themeState.darkTheme) {
                 Surface(color = MaterialTheme.colorScheme.background) {
-                    AnimatedContent(
-                        targetState = showSettings,
-                        transitionSpec = {
-                            if (targetState) {
-                                slideInHorizontally(initialOffsetX = { it }) togetherWith
-                                    slideOutHorizontally(targetOffsetX = { -it })
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        AnimatedContent(
+                            targetState = showSettings,
+                            transitionSpec = {
+                                if (targetState) {
+                                    slideInHorizontally(initialOffsetX = { it }) togetherWith
+                                        slideOutHorizontally(targetOffsetX = { -it })
+                                } else {
+                                    slideInHorizontally(initialOffsetX = { -it }) togetherWith
+                                        slideOutHorizontally(targetOffsetX = { it })
+                                }
+                            },
+                            label = "settings_transition"
+                        ) { isSettings ->
+                            if (isSettings) {
+                                SettingsScreen(
+                                    darkTheme = themeState.darkTheme,
+                                    useBeamSearch = useBeamSearch,
+                                    appVersion = appVersion,
+                                    onDarkThemeChanged = { themeState.updateDarkTheme(it) },
+                                    onUseBeamSearchChanged = { scope.launch { themePreferences.setUseBeamSearch(it) } },
+                                    onBack = { mainUiViewModel.closeSettings() }
+                                )
                             } else {
-                                slideInHorizontally(initialOffsetX = { -it }) togetherWith
-                                    slideOutHorizontally(targetOffsetX = { it })
+                                ASRScreen(
+                                    viewModel = viewModel,
+                                    isModelLoading = modelInitState is ModelInitState.Loading,
+                                    modelErrorMessage = (modelInitState as? ModelInitState.Error)?.message,
+                                    onSettingsClick = { mainUiViewModel.openSettings() },
+                                    onHistoryClick = { mainUiViewModel.openHistory() }
+                                )
                             }
-                        },
-                        label = "settings_transition"
-                    ) { isSettings ->
-                        if (isSettings) {
-                            SettingsScreen(
-                                darkTheme = themeState.darkTheme,
-                                useBeamSearch = useBeamSearch,
-                                appVersion = appVersion,
-                                onDarkThemeChanged = { themeState.updateDarkTheme(it) },
-                                onUseBeamSearchChanged = { scope.launch { themePreferences.setUseBeamSearch(it) } },
-                                onBack = { mainUiViewModel.closeSettings() }
-                            )
-                        } else {
-                            ASRScreen(
-                                viewModel = viewModel,
-                                isModelLoading = modelInitState is ModelInitState.Loading,
-                                modelErrorMessage = (modelInitState as? ModelInitState.Error)?.message,
-                                onSettingsClick = { mainUiViewModel.openSettings() }
-                            )
+                        }
+                        AnimatedVisibility(
+                            visible = showHistory,
+                            enter = slideInHorizontally(initialOffsetX = { -it }) + fadeIn(),
+                            exit = slideOutHorizontally(targetOffsetX = { -it }) + fadeOut()
+                        ) {
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                HistoryScreen(
+                                    darkTheme = themeState.darkTheme,
+                                    useBeamSearch = useBeamSearch,
+                                    appVersion = appVersion,
+                                    onDarkThemeChanged = { themeState.updateDarkTheme(it) },
+                                    onUseBeamSearchChanged = { scope.launch { themePreferences.setUseBeamSearch(it) } },
+                                    onBack = { mainUiViewModel.closeHistory() }
+                                )
+                            }
                         }
                     }
                 }

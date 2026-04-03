@@ -12,6 +12,7 @@
 /captures
 .externalNativeBuild
 .cxx
+release
 local.properties
 .gradle/
 build/

@@ -35,6 +35,7 @@ class MainUiViewModel @Inject constructor(
     }
 
     fun openSettings() {
+        _showHistory.value = false
         _showSettings.value = true
     }
 
