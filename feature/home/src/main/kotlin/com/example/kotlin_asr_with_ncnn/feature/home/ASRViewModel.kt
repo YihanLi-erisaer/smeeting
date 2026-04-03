@@ -3,6 +3,7 @@ package com.example.kotlin_asr_with_ncnn.feature.home
 import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.kotlin_asr_with_ncnn.domain.usecase.AppendTranscriptionHistoryUseCase
 import com.example.kotlin_asr_with_ncnn.domain.usecase.StartASRUseCase
 import com.example.kotlin_asr_with_ncnn.domain.usecase.StopASRUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,7 +22,8 @@ import javax.inject.Inject
 class ASRViewModel @Inject constructor(
     private val application: Application,
     private val startASRUseCase: StartASRUseCase,
-    private val stopASRUseCase: StopASRUseCase
+    private val stopASRUseCase: StopASRUseCase,
+    private val appendTranscriptionHistoryUseCase: AppendTranscriptionHistoryUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ASRContract.UiState())
@@ -102,6 +104,10 @@ class ASRViewModel @Inject constructor(
                 )
             }
             _uiState.update { it.copy(isListening = false) }
+            val finalText = _uiState.value.resultText.trim()
+            if (finalText.isNotEmpty()) {
+                appendTranscriptionHistoryUseCase(finalText)
+            }
         }
     }
 

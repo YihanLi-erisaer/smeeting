@@ -1,8 +1,12 @@
 <resources>
-    <string name="history_title">转述历史</string>
+    <string name="history_title">识别历史</string>
     <string name="back">返回</string>
     <string name="dark_theme">深色主题</string>
     <string name="beam_search">束搜索</string>
     <string name="beam_search_subtitle">默认贪心搜索。打开时：修改波束搜索，通常较慢准确度较高。</string>
     <string name="app_version">应用版本</string>
+    <string name="history_copy">复制</string>
+    <string name="history_delete">删除</string>
+    <string name="history_empty">暂无记录。\n结束一次录音识别后会自动保存在这里。</string>
+    <string name="history_copied">已复制</string>
 </resources>

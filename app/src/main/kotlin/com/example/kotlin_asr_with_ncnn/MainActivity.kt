@@ -36,6 +36,7 @@ import com.example.kotlin_asr_with_ncnn.feature.home.ASRScreen
 import com.example.kotlin_asr_with_ncnn.feature.home.ASRViewModel
 import com.example.kotlin_asr_with_ncnn.feature.settings.SettingsScreen
 import com.example.kotlin_asr_with_ncnn.feature.history.HistoryScreen
+import com.example.kotlin_asr_with_ncnn.feature.history.HistoryViewModel
 import com.example.kotlin_asr_with_ncnn.core.startup.AsrModelLoad
 import com.example.kotlin_asr_with_ncnn.core.startup.ModelInitNotifier
 import com.example.kotlin_asr_with_ncnn.core.startup.ModelInitPipelineEvent
@@ -58,6 +59,7 @@ class MainActivity : ComponentActivity() {
     lateinit var modelInitNotifier: ModelInitNotifier
     private val viewModel: ASRViewModel by viewModels()
     private val mainUiViewModel: MainUiViewModel by viewModels()
+    private val historyViewModel: HistoryViewModel by viewModels()
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -181,12 +183,8 @@ class MainActivity : ComponentActivity() {
                                 ) { isHistory ->
                                     if (isHistory) {
                                         HistoryScreen(
-                                            darkTheme = themeState.darkTheme,
-                                            useBeamSearch = useBeamSearch,
-                                            appVersion = appVersion,
-                                            onDarkThemeChanged = { themeState.updateDarkTheme(it) },
-                                            onUseBeamSearchChanged = { scope.launch { themePreferences.setUseBeamSearch(it) } },
-                                            onBack = { mainUiViewModel.closeHistory() }
+                                            viewModel = historyViewModel,
+                                            onBack = { mainUiViewModel.closeHistory() },
                                         )
                                     } else {
                                         ASRScreen(

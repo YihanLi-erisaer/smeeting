@@ -1,8 +1,12 @@
 <resources>
-    <string name="history_title">Trascribtion History</string>
+    <string name="history_title">Transcription history</string>
     <string name="back">Back</string>
     <string name="dark_theme">Dark theme</string>
     <string name="beam_search">Beam search</string>
     <string name="beam_search_subtitle">Default Greedy search. On: modified beam search, often slower with higher accuracy.</string>
     <string name="app_version">App version</string>
+    <string name="history_copy">Copy</string>
+    <string name="history_delete">Delete</string>
+    <string name="history_empty">No saved transcriptions yet.\nThey appear here after you stop recording.</string>
+    <string name="history_copied">Copied</string>
 </resources>
