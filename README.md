@@ -26,9 +26,9 @@ This section provides instructions for running the Kotlin-Zipformer on-device AS
 - **Operating System:** Android 10+ / JVM compatible OS  
 - **Kotlin Version:** 1.8+  
 - **Dependencies:**  
-  - ONNX Runtime (for model inference)  
+  - sherpa-ncnn (for model inference)  
   - Gradle 7.0+  
-  - Optional: Audio recording permissions on mobile devices  
+  - Audio recording permissions on mobile devices  
 
 ---
 
