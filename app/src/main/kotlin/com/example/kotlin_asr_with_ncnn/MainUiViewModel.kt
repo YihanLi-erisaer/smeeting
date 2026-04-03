@@ -21,6 +21,10 @@ class MainUiViewModel @Inject constructor(
     private val _showSettings = MutableStateFlow(false)
     val showSettings: StateFlow<Boolean> = _showSettings.asStateFlow()
 
+    private val _showHistory = MutableStateFlow(false)
+    val showHistory: StateFlow<Boolean> = _showHistory.asStateFlow()
+
+
     private val _modelInitState = MutableStateFlow<ModelInitState>(ModelInitState.Loading)
     val modelInitState: StateFlow<ModelInitState> = _modelInitState.asStateFlow()
 
@@ -36,5 +40,13 @@ class MainUiViewModel @Inject constructor(
 
     fun closeSettings() {
         _showSettings.value = false
+    }
+
+    fun openHistory() {
+        _showHistory.value = true
+    }
+
+    fun closeHistory() {
+        _showHistory.value = false
     }
 }

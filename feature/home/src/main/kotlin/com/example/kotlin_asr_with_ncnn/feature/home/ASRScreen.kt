@@ -18,7 +18,8 @@ fun ASRScreen(
     viewModel: ASRViewModel,
     isModelLoading: Boolean = false,
     modelErrorMessage: String? = null,
-    onSettingsClick: () -> Unit = {}
+    onSettingsClick: () -> Unit = {},
+    onHistoryClick: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val clipboardManager = LocalClipboardManager.current
@@ -122,6 +123,15 @@ fun ASRScreen(
                 .padding(24.dp)
         ) {
             Text(text = "⚙", style = MaterialTheme.typography.titleLarge)
+        }
+
+        IconButton(
+            onClick = onHistoryClick,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(24.dp)
+        ) {
+            Text(text = "History", style = MaterialTheme.typography.labelSmall)
         }
 
         SnackbarHost(

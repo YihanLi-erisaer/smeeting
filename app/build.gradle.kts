@@ -70,6 +70,7 @@ dependencies {
     implementation(project(":data"))
     implementation(project(":feature:home"))
     implementation(project(":feature:settings"))
+    implementation(project(":feature:history"))
 
     // Hilt
     implementation(libs.hilt.android)

@@ -32,6 +32,7 @@ import com.example.kotlin_asr_with_ncnn.core.ui.rememberThemeState
 import com.example.kotlin_asr_with_ncnn.feature.home.ASRScreen
 import com.example.kotlin_asr_with_ncnn.feature.home.ASRViewModel
 import com.example.kotlin_asr_with_ncnn.feature.settings.SettingsScreen
+import com.example.kotlin_asr_with_ncnn.feature.history.HistoryScreen
 import com.example.kotlin_asr_with_ncnn.core.startup.AsrModelLoad
 import com.example.kotlin_asr_with_ncnn.core.startup.ModelInitNotifier
 import com.example.kotlin_asr_with_ncnn.core.startup.ModelInitPipelineEvent
