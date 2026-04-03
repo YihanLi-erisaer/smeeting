@@ -116,6 +116,20 @@ esac
 
 CLASSPATH="\\\"\\\""
 
+# Android Gradle needs jlink (full JDK). If JAVA_HOME is a JRE without jlink, prefer Android Studio JBR.
+if [ -z "$JAVA_HOME" ] || [ ! -x "$JAVA_HOME/bin/jlink" ]; then
+    for candidate in \
+        "${LOCALAPPDATA:-}/Programs/Android Studio/jbr" \
+        "/c/Program Files/Android/Android Studio/jbr" \
+        "/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+    do
+        if [ -n "$candidate" ] && [ -x "$candidate/bin/jlink" ]; then
+            JAVA_HOME="$candidate"
+            export JAVA_HOME
+            break
+        fi
+    done
+fi
 
 # Determine the Java command to use to start the JVM.
 if [ -n "$JAVA_HOME" ] ; then

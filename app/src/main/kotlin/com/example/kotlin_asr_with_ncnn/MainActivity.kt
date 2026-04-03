@@ -11,9 +11,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -131,17 +128,17 @@ class MainActivity : ComponentActivity() {
             val showHistory by mainUiViewModel.showHistory.collectAsState()
             val appVersion = remember { getAppVersion() }
 
-            BackHandler(enabled = showSettings) {
-                mainUiViewModel.closeSettings()
-            }
-
-            BackHandler(enabled = showHistory) {
-                mainUiViewModel.closeHistory()
+            BackHandler(enabled = showSettings || showHistory) {
+                when {
+                    showHistory -> mainUiViewModel.closeHistory()
+                    showSettings -> mainUiViewModel.closeSettings()
+                }
             }
 
             AppTheme(darkTheme = themeState.darkTheme) {
                 Surface(color = MaterialTheme.colorScheme.background) {
                     Box(modifier = Modifier.fillMaxSize()) {
+                        // Settings: full-screen replacement of home — slides in from the right, out to the right.
                         AnimatedContent(
                             targetState = showSettings,
                             transitionSpec = {
@@ -153,7 +150,8 @@ class MainActivity : ComponentActivity() {
                                         slideOutHorizontally(targetOffsetX = { it })
                                 }
                             },
-                            label = "settings_transition"
+                            label = "settings_transition",
+                            modifier = Modifier.fillMaxSize()
                         ) { isSettings ->
                             if (isSettings) {
                                 SettingsScreen(
@@ -165,29 +163,41 @@ class MainActivity : ComponentActivity() {
                                     onBack = { mainUiViewModel.closeSettings() }
                                 )
                             } else {
-                                ASRScreen(
-                                    viewModel = viewModel,
-                                    isModelLoading = modelInitState is ModelInitState.Loading,
-                                    modelErrorMessage = (modelInitState as? ModelInitState.Error)?.message,
-                                    onSettingsClick = { mainUiViewModel.openSettings() },
-                                    onHistoryClick = { mainUiViewModel.openHistory() }
-                                )
-                            }
-                        }
-                        AnimatedVisibility(
-                            visible = showHistory,
-                            enter = slideInHorizontally(initialOffsetX = { -it }) + fadeIn(),
-                            exit = slideOutHorizontally(targetOffsetX = { -it }) + fadeOut()
-                        ) {
-                            Box(modifier = Modifier.fillMaxSize()) {
-                                HistoryScreen(
-                                    darkTheme = themeState.darkTheme,
-                                    useBeamSearch = useBeamSearch,
-                                    appVersion = appVersion,
-                                    onDarkThemeChanged = { themeState.updateDarkTheme(it) },
-                                    onUseBeamSearchChanged = { scope.launch { themePreferences.setUseBeamSearch(it) } },
-                                    onBack = { mainUiViewModel.closeHistory() }
-                                )
+                                // Mirror of settings: History swaps with home — in from the left, home exits right;
+                                // closing — home returns from the right, History exits left.
+                                AnimatedContent(
+                                    targetState = showHistory,
+                                    transitionSpec = {
+                                        if (targetState) {
+                                            slideInHorizontally(initialOffsetX = { -it }) togetherWith
+                                                slideOutHorizontally(targetOffsetX = { it })
+                                        } else {
+                                            slideInHorizontally(initialOffsetX = { it }) togetherWith
+                                                slideOutHorizontally(targetOffsetX = { -it })
+                                        }
+                                    },
+                                    label = "history_transition",
+                                    modifier = Modifier.fillMaxSize()
+                                ) { isHistory ->
+                                    if (isHistory) {
+                                        HistoryScreen(
+                                            darkTheme = themeState.darkTheme,
+                                            useBeamSearch = useBeamSearch,
+                                            appVersion = appVersion,
+                                            onDarkThemeChanged = { themeState.updateDarkTheme(it) },
+                                            onUseBeamSearchChanged = { scope.launch { themePreferences.setUseBeamSearch(it) } },
+                                            onBack = { mainUiViewModel.closeHistory() }
+                                        )
+                                    } else {
+                                        ASRScreen(
+                                            viewModel = viewModel,
+                                            isModelLoading = modelInitState is ModelInitState.Loading,
+                                            modelErrorMessage = (modelInitState as? ModelInitState.Error)?.message,
+                                            onSettingsClick = { mainUiViewModel.openSettings() },
+                                            onHistoryClick = { mainUiViewModel.openHistory() }
+                                        )
+                                    }
+                                }
                             }
                         }
                     }

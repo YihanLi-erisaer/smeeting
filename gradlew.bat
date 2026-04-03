@@ -35,6 +35,28 @@ set APP_HOME=%DIRNAME%
 @rem Resolve any "." and ".." in APP_HOME to make it shorter.
 for %%i in ("%APP_HOME%") do set APP_HOME=%%~fi
 
+@rem Android Gradle needs a full JDK (jlink.exe). Cursor/IDE often set JAVA_HOME to a JRE without jlink.
+call :use_android_studio_jbr_if_needed
+goto after_java_home_bootstrap
+:use_android_studio_jbr_if_needed
+if defined JAVA_HOME (
+  if exist "%JAVA_HOME%\bin\jlink.exe" exit /b 0
+)
+if exist "%LOCALAPPDATA%\Programs\Android Studio\jbr\bin\jlink.exe" (
+  set "JAVA_HOME=%LOCALAPPDATA%\Programs\Android Studio\jbr"
+  exit /b 0
+)
+if exist "C:\Program Files\Android\Android Studio\jbr\bin\jlink.exe" (
+  set "JAVA_HOME=C:\Program Files\Android\Android Studio\jbr"
+  exit /b 0
+)
+if exist "%ProgramFiles(x86)%\Android\Android Studio\jbr\bin\jlink.exe" (
+  set "JAVA_HOME=%ProgramFiles(x86)%\Android\Android Studio\jbr"
+  exit /b 0
+)
+exit /b 0
+:after_java_home_bootstrap
+
 @rem Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
 set DEFAULT_JVM_OPTS="-Xmx64m" "-Xms64m"
 
