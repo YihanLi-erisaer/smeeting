@@ -97,7 +97,8 @@ The system consists of the following components:
 | ------------ | ------- |
 | Memory Usage | ~250 MB  |
 | Latency      | ~120 ms  |
-| Accuracy     | ~89.8%  |
+| Accuracy (in chaos environment)     | ~87%  |
+| Accuracy (in quiet environment)     | ~93%  |
 
 ---
 
