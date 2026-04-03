@@ -23,6 +23,11 @@ android {
         jvmTarget = "17"
     }
 
+    // Configure Java Toolchain to ensure jlink is available
+    kotlin {
+        jvmToolchain(17)
+    }
+
     buildFeatures {
         compose = true
     }
