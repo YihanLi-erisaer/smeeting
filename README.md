@@ -88,7 +88,30 @@ The system consists of the following components:
 * Efficient handling of streaming audio data
 * Optimization for latency-sensitive applications
 * Modular system design for extensibility
+* Start up optimization
+```mermaid
+flowchart LR
+    subgraph App Startup
+        A[App launch] --> B[Init UI]
+        B --> C[Background init coroutines]
+    end
 
+    subgraph Model & ASR Engine
+        C --> D[Check cached model]
+        D -->|Exists| E[Lazy load inference engine]
+        D -->|Not exists| F[Fetch / prepare model]
+        F --> E
+        E --> G[NCNN + Zipformer init]
+    end
+
+    subgraph Audio Pipeline Ready
+        G --> H[Audio capture setup]
+        H --> I[Feature extractor hotstart]
+        I --> J[Streaming buffer init]
+        J --> K[Ready for real-time ASR]
+    end
+
+    B --> K
 ---
 
 ## Performance
