@@ -29,6 +29,7 @@ android {
 
 dependencies {
     implementation(libs.androidx.core.ktx)
+    implementation(platform(libs.kotlinx.coroutines.bom))
     implementation(libs.kotlinx.coroutines.android)
     implementation(project(":core:media"))
     implementation(project(":core:common"))

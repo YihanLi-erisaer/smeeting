@@ -40,6 +40,6 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
 
-    // Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
+    implementation(platform(libs.kotlinx.coroutines.bom))
+    implementation(libs.kotlinx.coroutines.core)
 }
