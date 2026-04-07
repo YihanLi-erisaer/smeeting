@@ -175,3 +175,9 @@ This project demonstrates the feasibility of deploying modern ASR architectures 
 [sherpa_ncnn](https://github.com/k2-fsa/sherpa-ncnn)
 
 ---
+
+## License
+
+This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details.
+
+---
