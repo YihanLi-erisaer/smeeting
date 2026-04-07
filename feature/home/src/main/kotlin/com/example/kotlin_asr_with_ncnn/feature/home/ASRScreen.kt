@@ -122,7 +122,7 @@ fun ASRScreen(
             onClick = onSettingsClick,
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(24.dp)
+                .padding(48.dp)
         ) {
             Text(text = "⚙", style = MaterialTheme.typography.titleLarge)
         }
@@ -131,7 +131,7 @@ fun ASRScreen(
             onClick = onHistoryClick,
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(24.dp)
+                .padding(48.dp)
         ) {
             Icon(
                 imageVector = Icons.Default.Menu,
