@@ -1,7 +1,7 @@
 # Central versions. Compose + Coroutines artifacts without explicit versions are resolved via BOMs
 # (platform(libs.androidx.compose.bom) / platform(libs.kotlinx.coroutines.bom)).
 [versions]
-agp = "8.7.3"
+agp = "8.8.2"
 kotlin = "2.0.21"
 ksp = "2.0.21-1.0.28"
 
