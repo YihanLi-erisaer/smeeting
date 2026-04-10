@@ -19,3 +19,10 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Keep the JNI bridge class and its members because the native layer binds to
+# the generated Java/Kotlin symbol names directly.
+-keep class com.example.kotlin_asr_with_ncnn.core.media.NcnnNativeBridge { *; }
+-keepclasseswithmembernames class * {
+    native <methods>;
+}

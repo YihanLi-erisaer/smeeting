@@ -16,6 +16,7 @@ set(ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../../..)
 # Prefer sherpa-ncnn's libncnn.a (non-Vulkan) to avoid Vulkan crashes on MediaTek/some devices
 set(NCNN_JNILIBS ${CMAKE_CURRENT_SOURCE_DIR}/jniLibs/${ANDROID_ABI}/libncnn.a)
 set(NCNN_VULKAN_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ncnn-20260113-android-vulkan/${ANDROID_ABI})
+set(NCNN_VULKAN_INCLUDE ${NCNN_VULKAN_DIR}/include/ncnn)
 
 # sherpa-ncnn's folder name for armeabi-v7a build is "armv7-eabi".
 if(ANDROID_ABI STREQUAL "armeabi-v7a")
