@@ -5,10 +5,16 @@ import android.util.Log
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 @Singleton
 class NcnnNativeBridge @Inject constructor() {
     private val isModelInitialized = AtomicBoolean(false)
+
+    private val _inferenceBackend = MutableStateFlow<InferenceBackend?>(null)
+    val inferenceBackend: StateFlow<InferenceBackend?> = _inferenceBackend.asStateFlow()
 
     companion object {
         init {
@@ -70,6 +76,10 @@ class NcnnNativeBridge @Inject constructor() {
             )
             if (success) {
                 isModelInitialized.set(true)
+                _inferenceBackend.value =
+                    if (getEncoderUsesVulkanNative()) InferenceBackend.Gpu else InferenceBackend.Cpu
+            } else {
+                _inferenceBackend.value = null
             }
             return success
         }
@@ -80,6 +90,7 @@ class NcnnNativeBridge @Inject constructor() {
         synchronized(this) {
             releaseModelNative()
             isModelInitialized.set(false)
+            _inferenceBackend.value = null
         }
     }
 
@@ -104,4 +115,6 @@ class NcnnNativeBridge @Inject constructor() {
     external fun signalInputFinished()
     external fun feedAudioData(data: ShortArray)
     external fun getStatus(): Int
+
+    private external fun getEncoderUsesVulkanNative(): Boolean
 }

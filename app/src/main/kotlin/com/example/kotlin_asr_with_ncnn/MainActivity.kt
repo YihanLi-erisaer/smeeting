@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -29,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameMillis
 import androidx.lifecycle.lifecycleScope
 import com.example.kotlin_asr_with_ncnn.core.common.ThemePreferences
+import com.example.kotlin_asr_with_ncnn.core.media.InferenceBackend
 import com.example.kotlin_asr_with_ncnn.core.media.NcnnNativeBridge
 import com.example.kotlin_asr_with_ncnn.core.ui.AppTheme
 import com.example.kotlin_asr_with_ncnn.core.ui.rememberThemeState
@@ -47,6 +49,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.example.kotlin_asr_with_ncnn.feature.settings.R as SettingsR
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -106,6 +109,16 @@ class MainActivity : ComponentActivity() {
             val darkTheme by themePreferences.darkThemeFlow.collectAsState(initial = false)
             val useBeamSearch by themePreferences.useBeamSearchFlow.collectAsState(initial = false)
             val modelInitState by mainUiViewModel.modelInitState.collectAsState()
+            val inferenceBackend by nativeBridge.inferenceBackend.collectAsState(initial = null)
+            val inferenceBackendLabel = when (modelInitState) {
+                is ModelInitState.Loading -> stringResource(SettingsR.string.inference_backend_loading)
+                is ModelInitState.Error -> stringResource(SettingsR.string.inference_backend_unavailable)
+                is ModelInitState.Ready -> when (inferenceBackend) {
+                    InferenceBackend.Gpu -> stringResource(SettingsR.string.inference_backend_gpu)
+                    InferenceBackend.Cpu -> stringResource(SettingsR.string.inference_backend_cpu)
+                    null -> stringResource(SettingsR.string.inference_backend_unknown)
+                }
+            }
             var decoderModeSynced by remember { mutableStateOf<Boolean?>(null) }
             LaunchedEffect(useBeamSearch, modelInitState) {
                 if (modelInitState !is ModelInitState.Ready) return@LaunchedEffect
@@ -160,6 +173,7 @@ class MainActivity : ComponentActivity() {
                                     darkTheme = themeState.darkTheme,
                                     useBeamSearch = useBeamSearch,
                                     appVersion = appVersion,
+                                    inferenceBackendLabel = inferenceBackendLabel,
                                     onDarkThemeChanged = { themeState.updateDarkTheme(it) },
                                     onUseBeamSearchChanged = { scope.launch { themePreferences.setUseBeamSearch(it) } },
                                     onBack = { mainUiViewModel.closeSettings() }

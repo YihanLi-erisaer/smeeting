@@ -17,6 +17,8 @@
 
 #define TAG "NcnnASR-Native"
 
+static std::atomic<bool> g_encoder_uses_vulkan{false};
+
 static sherpa_ncnn::Recognizer* g_recognizer = nullptr;
 static jobject g_bridge_obj = nullptr;
 static jmethodID g_callback_mid = nullptr;
@@ -163,6 +165,7 @@ Java_com_example_kotlin_1asr_1with_1ncnn_core_media_NcnnNativeBridge_initModelNa
     }
 
     g_status = INITIALIZING;
+    g_encoder_uses_vulkan.store(false);
 
     auto get_utf_str = [&](jstring js) {
         if (!js) return std::string("");
@@ -242,6 +245,16 @@ Java_com_example_kotlin_1asr_1with_1ncnn_core_media_NcnnNativeBridge_initModelNa
         }
 
         __android_log_print(ANDROID_LOG_INFO, TAG, "Sherpa-NCNN Recognizer loaded successfully");
+        // GetModel() returns const Model* but GetEncoder() is non-const; only read .opt here.
+        sherpa_ncnn::Model* model_for_opt =
+            const_cast<sherpa_ncnn::Model*>(g_recognizer->GetModel());
+        if (model_for_opt->GetEncoder().opt.use_vulkan_compute) {
+            g_encoder_uses_vulkan.store(true);
+            __android_log_print(ANDROID_LOG_INFO, TAG, "Inference backend: GPU (Vulkan)");
+        } else {
+            g_encoder_uses_vulkan.store(false);
+            __android_log_print(ANDROID_LOG_INFO, TAG, "Inference backend: CPU");
+        }
         g_status = IDLE;
         return JNI_TRUE;
     } catch (const std::exception& e) {
@@ -283,6 +296,7 @@ Java_com_example_kotlin_1asr_1with_1ncnn_core_media_NcnnNativeBridge_releaseMode
         delete g_recognizer;
         g_recognizer = nullptr;
     }
+    g_encoder_uses_vulkan.store(false);
     g_status = IDLE;
 }
 
@@ -348,6 +362,16 @@ Java_com_example_kotlin_1asr_1with_1ncnn_core_media_NcnnNativeBridge_feedAudioDa
 JNIEXPORT jint JNICALL
 Java_com_example_kotlin_1asr_1with_1ncnn_core_media_NcnnNativeBridge_getStatus(JNIEnv* env, jobject thiz) {
     return (jint)g_status.load();
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_example_kotlin_1asr_1with_1ncnn_core_media_NcnnNativeBridge_getEncoderUsesVulkanNative(
+        JNIEnv* env, jobject thiz) {
+    std::lock_guard<std::mutex> lock(g_state_mutex);
+    if (!g_recognizer) {
+        return JNI_FALSE;
+    }
+    return g_encoder_uses_vulkan.load() ? JNI_TRUE : JNI_FALSE;
 }
 
 } // extern "C"
