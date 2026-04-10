@@ -38,6 +38,7 @@ This section provides instructions for running the Kotlin-Zipformer on-device AS
 git clone https://github.com/YihanLi-erisaer/Kotlin-zipformer.git
 cd Kotlin-zipformer
 git clone https://github.com/k2-fsa/sherpa-ncnn.git
+# more steps to set up for android see https://k2-fsa.github.io/sherpa/ncnn/android/build-sherpa-ncnn.html#download-sherpa-ncnn
 ```
 ---
 
