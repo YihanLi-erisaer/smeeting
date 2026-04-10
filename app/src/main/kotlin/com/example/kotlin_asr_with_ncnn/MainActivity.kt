@@ -104,7 +104,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 withFrameMillis { }
-                StartupRunner.runRegisteredPipelineOnce(application, this)
+                StartupRunner.runRegisteredPipelineOnce(this)
             }
             val darkTheme by themePreferences.darkThemeFlow.collectAsState(initial = false)
             val useBeamSearch by themePreferences.useBeamSearchFlow.collectAsState(initial = false)
