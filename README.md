@@ -23,7 +23,7 @@ This section provides instructions for running the Kotlin-Zipformer on-device AS
 
 ### 1. Prerequisites
 
-- **Operating System:** Android 10+ / JVM compatible OS  
+- **Operating System:** Android 10+ / JVM compatible OS (Download and install the release APK only need Android 10+)
 - **Kotlin Version:** 1.8+  
 - **Dependencies:**  
   - sherpa-ncnn (for model inference)  
