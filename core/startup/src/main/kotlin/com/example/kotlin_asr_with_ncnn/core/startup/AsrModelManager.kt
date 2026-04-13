@@ -15,8 +15,8 @@ import javax.inject.Singleton
  * Single source of truth for ASR model lifecycle (load / reload / release).
  *
  * Both the startup DAG ([tasks.InitAsrModelTask]) and runtime triggers
- * ([com.example.kotlin_asr_with_ncnn.AsrModelCoordinator]) go through this class,
- * so concurrent calls are serialized by [mutex] and notification is consistent.
+ * (e.g. permission grants, beam-search toggles via [com.example.kotlin_asr_with_ncnn.MainUiViewModel])
+ * go through this class, so concurrent calls are serialized by [mutex] and notification is consistent.
  */
 @Singleton
 class AsrModelManager @Inject constructor(
