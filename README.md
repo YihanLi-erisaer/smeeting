@@ -98,7 +98,8 @@ The system consists of the following components:
 2. **Model & Engine Setup**  
    - **Lazy initialization** of Sherpa-NCNN + Zipformer engine.  
    - Local **model caching** avoids redundant loading.  
-   - Asynchronous setup minimizes startup latency (~250MB memory).
+   - Asynchronous setup minimizes startup latency (~250MB memory)
+   - Inference on GPU if not available, trace back to CPU
 
 3. **Audio Pipeline Prewarming**  
    - Microphone and feature extraction pipelines are preloaded.  
@@ -164,7 +165,6 @@ The system consists of the following components:
   * Multi-language expansion
   * Speaker diarization
   * Integration with LLM for downstream tasks
-  * Make model inferencing by GPU
 
 ---
 
