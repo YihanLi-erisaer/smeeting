@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
@@ -14,16 +15,18 @@ sealed class ModelInitState {
     data class Error(val message: String) : ModelInitState()
 }
 
+enum class MainScreen {
+    Home,
+    Settings,
+    History,
+}
+
 @HiltViewModel
 class MainUiViewModel @Inject constructor(
     
 ): ViewModel() {
-    private val _showSettings = MutableStateFlow(false)
-    val showSettings: StateFlow<Boolean> = _showSettings.asStateFlow()
-
-    private val _showHistory = MutableStateFlow(false)
-    val showHistory: StateFlow<Boolean> = _showHistory.asStateFlow()
-
+    private val _currentScreen = MutableStateFlow(MainScreen.Home)
+    val currentScreen: StateFlow<MainScreen> = _currentScreen.asStateFlow()
 
     private val _modelInitState = MutableStateFlow<ModelInitState>(ModelInitState.Loading)
     val modelInitState: StateFlow<ModelInitState> = _modelInitState.asStateFlow()
@@ -35,19 +38,24 @@ class MainUiViewModel @Inject constructor(
     }
 
     fun openSettings() {
-        _showHistory.value = false
-        _showSettings.value = true
+        _currentScreen.value = MainScreen.Settings
     }
 
     fun closeSettings() {
-        _showSettings.value = false
+        onBack()
     }
 
     fun openHistory() {
-        _showHistory.value = true
+        _currentScreen.value = MainScreen.History
     }
 
     fun closeHistory() {
-        _showHistory.value = false
+        onBack()
+    }
+
+    fun onBack() {
+        _currentScreen.update { screen ->
+            if (screen == MainScreen.Home) screen else MainScreen.Home
+        }
     }
 }
