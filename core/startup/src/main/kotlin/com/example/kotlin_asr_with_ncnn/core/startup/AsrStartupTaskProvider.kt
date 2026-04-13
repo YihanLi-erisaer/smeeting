@@ -21,7 +21,7 @@ class AsrStartupTaskProvider(
             ReadDisplayPreferencesTask(ep.themePreferences()),
             InitAsrModelTask(
                 app = application,
-                bridge = ep.ncnnNativeBridge(),
+                manager = ep.asrModelManager(),
                 notifier = ep.modelInitNotifier(),
             ),
         )

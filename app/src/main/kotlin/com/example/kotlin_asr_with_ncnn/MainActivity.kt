@@ -17,6 +17,7 @@ import androidx.lifecycle.lifecycleScope
 import com.example.kotlin_asr_with_ncnn.core.common.ThemePreferences
 import com.example.kotlin_asr_with_ncnn.core.media.InferenceBackend
 import com.example.kotlin_asr_with_ncnn.core.media.NcnnNativeBridge
+import com.example.kotlin_asr_with_ncnn.core.startup.AsrModelManager
 import com.example.kotlin_asr_with_ncnn.core.ui.rememberThemeState
 import com.example.kotlin_asr_with_ncnn.feature.home.ASRViewModel
 import com.example.kotlin_asr_with_ncnn.feature.history.HistoryViewModel
@@ -31,6 +32,8 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var nativeBridge: NcnnNativeBridge
     @Inject
+    lateinit var asrModelManager: AsrModelManager
+    @Inject
     lateinit var themePreferences: ThemePreferences
     @Inject
     lateinit var modelInitNotifier: ModelInitNotifier
@@ -40,7 +43,7 @@ class MainActivity : ComponentActivity() {
     private val asrModelCoordinator by lazy {
         AsrModelCoordinator(
             activity = this,
-            nativeBridge = nativeBridge,
+            asrModelManager = asrModelManager,
             themePreferences = themePreferences,
             modelInitNotifier = modelInitNotifier,
             mainUiViewModel = mainUiViewModel,
