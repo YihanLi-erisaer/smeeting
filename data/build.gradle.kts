@@ -34,8 +34,12 @@ dependencies {
     implementation(project(":core:common"))
 
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.datastore.preferences)
-    
+
+    // Room
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+
     // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
