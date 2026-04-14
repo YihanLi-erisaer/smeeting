@@ -23,7 +23,7 @@ This section provides instructions for running the Kotlin-Zipformer on-device AS
 
 ### 1. Prerequisites
 
-- **Operating System:** Android 10+ / JVM compatible OS  
+- **Operating System:** Android 10+ / JVM compatible OS (Download and install the release APK only need Android 10+)
 - **Kotlin Version:** 1.8+  
 - **Dependencies:**  
   - sherpa-ncnn (for model inference)  
@@ -98,7 +98,8 @@ The system consists of the following components:
 2. **Model & Engine Setup**  
    - **Lazy initialization** of Sherpa-NCNN + Zipformer engine.  
    - Local **model caching** avoids redundant loading.  
-   - Asynchronous setup minimizes startup latency (~250MB memory).
+   - Asynchronous setup minimizes startup latency (~250MB memory)
+   - Inference on GPU if not available, trace back to CPU
 
 3. **Audio Pipeline Prewarming**  
    - Microphone and feature extraction pipelines are preloaded.  
@@ -108,7 +109,7 @@ The system consists of the following components:
 ---
 
 ## Performance
-**performance on a android device Helio G99 processor using armv8 libs**
+**performance on a android device Helio G99 (CPU) processor using armv8 libs**
 | Metric       | Value   |
 | ------------ | ------- |
 | Memory Usage | ~250 MB  |
@@ -164,7 +165,6 @@ The system consists of the following components:
   * Multi-language expansion
   * Speaker diarization
   * Integration with LLM for downstream tasks
-  * Make model inferencing by GPU
 
 ---
 
