@@ -4,10 +4,18 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.text.format.DateUtils
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,10 +27,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -40,13 +51,19 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -68,6 +85,9 @@ fun HistoryScreen(
     var revealedDeleteId by remember { mutableStateOf<String?>(null) }
     var selectedEntryId by rememberSaveable { mutableStateOf<String?>(null) }
     var detailMenuExpanded by remember { mutableStateOf(false) }
+    var expandBias by remember { mutableFloatStateOf(0f) }
+    var contentCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
+    val listState = rememberLazyListState()
     val selectedEntry = entries.firstOrNull { it.id == selectedEntryId }
     val isShowingDetail = selectedEntry != null
 
@@ -76,9 +96,7 @@ fun HistoryScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = stringResource(R.string.history_title)
-                    )
+                    Text(text = stringResource(R.string.history_title))
                 },
                 navigationIcon = {
                     TextButton(
@@ -138,56 +156,84 @@ fun HistoryScreen(
             )
         },
     ) { padding ->
-        if (selectedEntry != null) {
-            HistoryEntryDetail(
-                item = selectedEntry,
-                contentPadding = padding,
-            )
-        } else if (entries.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = stringResource(R.string.history_empty),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+        AnimatedContent(
+            targetState = selectedEntry,
+            modifier = Modifier
+                .fillMaxSize()
+                .onGloballyPositioned { contentCoordinates = it },
+            transitionSpec = {
+                val anchor = BiasAlignment.Vertical(expandBias)
+                if (targetState != null) {
+                    (fadeIn(tween(300)) + expandVertically(tween(350), expandFrom = anchor))
+                        .togetherWith(fadeOut(tween(250)) + shrinkVertically(tween(350), shrinkTowards = anchor))
+                } else {
+                    (fadeIn(tween(300)) + expandVertically(tween(350), expandFrom = anchor))
+                        .togetherWith(fadeOut(tween(250)) + shrinkVertically(tween(350), shrinkTowards = anchor))
+                }.using(SizeTransform(clip = false))
+            },
+            label = "history_content_transition",
+        ) { entry ->
+            if (entry != null) {
+                HistoryEntryDetail(
+                    item = entry,
+                    contentPadding = padding,
                 )
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(
-                    items = entries,
-                    key = { it.id },
-                ) { item ->
-                    HistoryEntryRow(
-                        item = item,
-                        showDelete = revealedDeleteId == item.id,
-                        onOpenDetail = {
-                            revealedDeleteId = null
-                            selectedEntryId = item.id
-                        },
-                        onRevealDelete = { revealedDeleteId = item.id },
-                        onCollapseDelete = { revealedDeleteId = null },
-                        onCopy = {
-                            copyToClipboard(context, item.text)
-                            scope.launch {
-                                snackbarHostState.showSnackbar(copiedMessage)
-                            }
-                        },
-                        onDelete = {
-                            viewModel.deleteEntry(item.id)
-                            revealedDeleteId = null
-                        },
+            } else if (entries.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = stringResource(R.string.history_empty),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
+            } else {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(
+                        items = entries,
+                        key = { it.id },
+                    ) { item ->
+                        HistoryEntryRow(
+                            item = item,
+                            showDelete = revealedDeleteId == item.id,
+                            onOpenDetail = { rowCenterY ->
+                                revealedDeleteId = null
+                                val cc = contentCoordinates
+                                if (cc != null && cc.isAttached) {
+                                    val top = cc.positionInRoot().y
+                                    val height = cc.size.height.toFloat()
+                                    if (height > 0f) {
+                                        val fraction = ((rowCenterY - top) / height).coerceIn(0f, 1f)
+                                        expandBias = fraction * 2f - 1f
+                                    }
+                                }
+                                selectedEntryId = item.id
+                            },
+                            onRevealDelete = { revealedDeleteId = item.id },
+                            onCollapseDelete = { revealedDeleteId = null },
+                            onCopy = {
+                                copyToClipboard(context, item.text)
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(copiedMessage)
+                                }
+                            },
+                            onDelete = {
+                                viewModel.deleteEntry(item.id)
+                                revealedDeleteId = null
+                            },
+                        )
+                    }
                 }
             }
         }
@@ -199,60 +245,93 @@ fun HistoryScreen(
 private fun HistoryEntryRow(
     item: TranscriptionHistoryEntry,
     showDelete: Boolean,
-    onOpenDetail: () -> Unit,
+    onOpenDetail: (centerYInRoot: Float) -> Unit,
     onRevealDelete: () -> Unit,
     onCollapseDelete: () -> Unit,
     onCopy: () -> Unit,
     onDelete: () -> Unit,
 ) {
+    var rowCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .onGloballyPositioned { rowCoordinates = it }
+            .combinedClickable(
+                onClick = {
+                    if (showDelete) {
+                        onCollapseDelete()
+                    } else {
+                        val coords = rowCoordinates
+                        if (coords != null && coords.isAttached) {
+                            val bounds = coords.boundsInRoot()
+                            onOpenDetail((bounds.top + bounds.bottom) / 2f)
+                        } else {
+                            onOpenDetail(0f)
+                        }
+                    }
+                },
+                onLongClick = {
+                    if (showDelete) onCollapseDelete() else onRevealDelete()
+                },
+            ),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Column(
+        Box {
+            Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 12.dp, end = 4.dp, top = 8.dp, bottom = 8.dp)
-                    .combinedClickable(
-                        onClick = onOpenDetail,
-                        onLongClick = {
-                            if (showDelete) onCollapseDelete() else onRevealDelete()
-                        },
-                    ),
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Text(
-                    text = item.text,
-                    style = MaterialTheme.typography.bodyLarge,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = formatHistoryTime(item.createdAtMillis),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            TextButton(onClick = onCopy) {
-                Text(stringResource(R.string.history_copy))
-            }
-            AnimatedVisibility(
-                visible = showDelete,
-                enter = fadeIn(),
-                exit = fadeOut(),
-            ) {
-                TextButton(onClick = onDelete) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 12.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+                ) {
                     Text(
-                        text = stringResource(R.string.history_delete),
-                        color = MaterialTheme.colorScheme.error,
+                        text = item.text,
+                        style = MaterialTheme.typography.bodyLarge,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
                     )
+                    Text(
+                        text = formatHistoryTime(item.createdAtMillis),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                TextButton(onClick = onCopy) {
+                    Text(stringResource(R.string.history_copy))
+                }
+            }
+
+            androidx.compose.animation.AnimatedVisibility(
+                visible = showDelete,
+                enter = fadeIn(tween(200)),
+                exit = fadeOut(tween(200)),
+                modifier = Modifier.matchParentSize(),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.55f),
+                            shape = MaterialTheme.shapes.medium,
+                        )
+                        .clickable { onCollapseDelete() },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Button(
+                        onClick = onDelete,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                        ),
+                    ) {
+                        Text(stringResource(R.string.history_delete))
+                    }
                 }
             }
         }
