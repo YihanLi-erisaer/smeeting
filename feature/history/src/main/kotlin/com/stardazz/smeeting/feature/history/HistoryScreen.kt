@@ -32,6 +32,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -83,6 +84,8 @@ fun HistoryScreen(
     val context = LocalContext.current
     val copiedMessage = stringResource(R.string.history_copied)
     var revealedDeleteId by remember { mutableStateOf<String?>(null) }
+    var pendingDeleteId by remember { mutableStateOf<String?>(null) }
+    var deleteFromDetail by remember { mutableStateOf(false) }
     var selectedEntryId by rememberSaveable { mutableStateOf<String?>(null) }
     var detailMenuExpanded by remember { mutableStateOf(false) }
     var expandBias by remember { mutableFloatStateOf(0f) }
@@ -144,9 +147,8 @@ fun HistoryScreen(
                                     },
                                     onClick = {
                                         detailMenuExpanded = false
-                                        viewModel.deleteEntry(selectedEntry.id)
-                                        revealedDeleteId = null
-                                        selectedEntryId = null
+                                        pendingDeleteId = selectedEntry.id
+                                        deleteFromDetail = true
                                     },
                                 )
                             }
@@ -229,14 +231,45 @@ fun HistoryScreen(
                                 }
                             },
                             onDelete = {
-                                viewModel.deleteEntry(item.id)
-                                revealedDeleteId = null
+                                pendingDeleteId = item.id
+                                deleteFromDetail = false
                             },
                         )
                     }
                 }
             }
         }
+    }
+
+    if (pendingDeleteId != null) {
+        AlertDialog(
+            onDismissRequest = { pendingDeleteId = null },
+            title = { Text(stringResource(R.string.history_delete_confirm_title)) },
+            text = { Text(stringResource(R.string.history_delete_confirm_message)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val id = pendingDeleteId!!
+                        viewModel.deleteEntry(id)
+                        revealedDeleteId = null
+                        if (deleteFromDetail) {
+                            selectedEntryId = null
+                        }
+                        pendingDeleteId = null
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                    ),
+                ) {
+                    Text(stringResource(R.string.history_delete_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDeleteId = null }) {
+                    Text(stringResource(R.string.history_delete_cancel))
+                }
+            },
+        )
     }
 }
 

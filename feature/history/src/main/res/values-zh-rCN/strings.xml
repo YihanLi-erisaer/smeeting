@@ -7,6 +7,10 @@
     <string name="app_version">应用版本</string>
     <string name="history_copy">复制</string>
     <string name="history_delete">删除</string>
+    <string name="history_delete_confirm_title">删除记录</string>
+    <string name="history_delete_confirm_message">确定要删除这条识别记录吗？此操作无法撤销。</string>
+    <string name="history_delete_confirm">删除</string>
+    <string name="history_delete_cancel">取消</string>
     <string name="history_actions">历史记录操作</string>
     <string name="history_detail_title">记录详情</string>
     <string name="history_empty">暂无记录。\n结束一次录音识别后会自动保存在这里。</string>

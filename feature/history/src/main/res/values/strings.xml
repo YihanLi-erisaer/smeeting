@@ -7,6 +7,10 @@
     <string name="app_version">App version</string>
     <string name="history_copy">Copy</string>
     <string name="history_delete">Delete</string>
+    <string name="history_delete_confirm_title">Delete entry</string>
+    <string name="history_delete_confirm_message">Are you sure you want to delete this transcription? This action cannot be undone.</string>
+    <string name="history_delete_confirm">Delete</string>
+    <string name="history_delete_cancel">Cancel</string>
     <string name="history_actions">History actions</string>
     <string name="history_detail_title">History detail</string>
     <string name="history_empty">No saved transcriptions yet.\nThey appear here after you stop recording.</string>
