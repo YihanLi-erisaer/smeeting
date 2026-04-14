@@ -165,6 +165,7 @@ The system consists of the following components:
   * Multi-language expansion
   * Speaker diarization
   * Integration with LLM for downstream tasks
+  * Make it to a meeting record and summerize application, deploy a small LLM model (0.8b or 1b) model to summerize the meeting contents.
 
 ---
 
