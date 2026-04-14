@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.example.kotlin_asr_with_ncnn.feature.settings"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         minSdk = 27
