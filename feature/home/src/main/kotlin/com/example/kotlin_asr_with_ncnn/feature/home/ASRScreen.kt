@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.collectLatest
 
@@ -27,6 +28,7 @@ fun ASRScreen(
     val clipboardManager = LocalClipboardManager.current
     val snackbarHostState = remember { SnackbarHostState() }
     val outputScrollState = rememberScrollState()
+    val view = LocalView.current
     val resultText = when {
         isModelLoading -> stringResource(R.string.loading_model_please_wait)
         modelErrorMessage != null -> modelErrorMessage
@@ -51,6 +53,17 @@ fun ASRScreen(
         // Wait for the new text to be laid out before following the latest streamed output.
         withFrameNanos { }
         outputScrollState.scrollTo(outputScrollState.maxValue)
+    }
+
+    DisposableEffect(view, uiState.isListening) {
+        val previousKeepScreenOn = view.keepScreenOn
+        if (uiState.isListening) {
+            view.keepScreenOn = true
+        }
+
+        onDispose {
+            view.keepScreenOn = previousKeepScreenOn
+        }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
