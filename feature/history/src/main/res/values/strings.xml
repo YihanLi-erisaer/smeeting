@@ -7,6 +7,8 @@
     <string name="app_version">App version</string>
     <string name="history_copy">Copy</string>
     <string name="history_delete">Delete</string>
+    <string name="history_actions">History actions</string>
+    <string name="history_detail_title">History detail</string>
     <string name="history_empty">No saved transcriptions yet.\nThey appear here after you stop recording.</string>
     <string name="history_copied">Copied</string>
 </resources>

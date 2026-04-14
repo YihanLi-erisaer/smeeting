@@ -19,9 +19,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -34,6 +42,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -55,22 +64,86 @@ fun HistoryScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val copiedMessage = stringResource(R.string.history_copied)
     var revealedDeleteId by remember { mutableStateOf<String?>(null) }
+    var selectedEntryId by rememberSaveable { mutableStateOf<String?>(null) }
+    var detailMenuExpanded by remember { mutableStateOf(false) }
+    val selectedEntry = entries.firstOrNull { it.id == selectedEntryId }
+    val isShowingDetail = selectedEntry != null
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.history_title)) },
+                title = {
+                    Text(
+                        text = stringResource(R.string.history_title)
+                    )
+                },
                 navigationIcon = {
-                    TextButton(onClick = onBack) {
+                    TextButton(
+                        onClick = {
+                            detailMenuExpanded = false
+                            if (isShowingDetail) {
+                                selectedEntryId = null
+                            } else {
+                                onBack()
+                            }
+                        }
+                    ) {
                         Text("← ${stringResource(R.string.back)}")
+                    }
+                },
+                actions = {
+                    if (selectedEntry != null) {
+                        Box {
+                            IconButton(onClick = { detailMenuExpanded = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.MoreVert,
+                                    contentDescription = stringResource(R.string.history_title),
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = detailMenuExpanded,
+                                onDismissRequest = { detailMenuExpanded = false },
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.history_copy)) },
+                                    onClick = {
+                                        detailMenuExpanded = false
+                                        copyToClipboard(context, selectedEntry.text)
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar(copiedMessage)
+                                        }
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = stringResource(R.string.history_delete),
+                                            color = MaterialTheme.colorScheme.error,
+                                        )
+                                    },
+                                    onClick = {
+                                        detailMenuExpanded = false
+                                        viewModel.deleteEntry(selectedEntry.id)
+                                        revealedDeleteId = null
+                                        selectedEntryId = null
+                                    },
+                                )
+                            }
+                        }
                     }
                 },
             )
         },
     ) { padding ->
-        if (entries.isEmpty()) {
+        if (selectedEntry != null) {
+            HistoryEntryDetail(
+                item = selectedEntry,
+                contentPadding = padding,
+            )
+        } else if (entries.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -97,14 +170,17 @@ fun HistoryScreen(
                 ) { item ->
                     HistoryEntryRow(
                         item = item,
-                        context = context,
                         showDelete = revealedDeleteId == item.id,
+                        onOpenDetail = {
+                            revealedDeleteId = null
+                            selectedEntryId = item.id
+                        },
                         onRevealDelete = { revealedDeleteId = item.id },
                         onCollapseDelete = { revealedDeleteId = null },
                         onCopy = {
                             copyToClipboard(context, item.text)
                             scope.launch {
-                                snackbarHostState.showSnackbar(context.getString(R.string.history_copied))
+                                snackbarHostState.showSnackbar(copiedMessage)
                             }
                         },
                         onDelete = {
@@ -122,8 +198,8 @@ fun HistoryScreen(
 @Composable
 private fun HistoryEntryRow(
     item: TranscriptionHistoryEntry,
-    context: Context,
     showDelete: Boolean,
+    onOpenDetail: () -> Unit,
     onRevealDelete: () -> Unit,
     onCollapseDelete: () -> Unit,
     onCopy: () -> Unit,
@@ -146,8 +222,10 @@ private fun HistoryEntryRow(
                     .weight(1f)
                     .padding(start = 12.dp, end = 4.dp, top = 8.dp, bottom = 8.dp)
                     .combinedClickable(
-                        onClick = onCollapseDelete,
-                        onLongClick = onRevealDelete,
+                        onClick = onOpenDetail,
+                        onLongClick = {
+                            if (showDelete) onCollapseDelete() else onRevealDelete()
+                        },
                     ),
             ) {
                 Text(
@@ -157,7 +235,7 @@ private fun HistoryEntryRow(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = formatHistoryTime(context, item.createdAtMillis),
+                    text = formatHistoryTime(item.createdAtMillis),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -181,7 +259,48 @@ private fun HistoryEntryRow(
     }
 }
 
-private fun formatHistoryTime(context: Context, millis: Long): String =
+@Composable
+private fun HistoryEntryDetail(
+    item: TranscriptionHistoryEntry,
+    contentPadding: PaddingValues,
+) {
+    val scrollState = rememberScrollState()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(contentPadding)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            text = formatHistoryTime(item.createdAtMillis),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .padding(16.dp),
+            ) {
+                Text(
+                    text = item.text,
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
+        }
+    }
+}
+
+private fun formatHistoryTime(millis: Long): String =
     DateUtils.getRelativeTimeSpanString(
         millis,
         System.currentTimeMillis(),
