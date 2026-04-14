@@ -1,4 +1,4 @@
-plugins {
+﻿plugins {
     id("com.android.library")
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.hilt)
@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.kotlin_asr_with_ncnn.core.media"
+    namespace = "com.stardazz.smeeting.core.media"
     compileSdk = 35
 
     defaultConfig {

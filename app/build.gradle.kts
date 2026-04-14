@@ -1,4 +1,4 @@
-plugins {
+﻿plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.kotlin_asr_with_ncnn"
+    namespace = "com.stardazz.smeeting"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.kotlin_asr_with_ncnn"
+        applicationId = "com.stardazz.smeeting"
         minSdk = 27
         targetSdk = 35
         versionCode = 1

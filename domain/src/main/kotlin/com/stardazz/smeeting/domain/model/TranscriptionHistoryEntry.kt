@@ -1,0 +1,7 @@
+﻿package com.stardazz.smeeting.domain.model
+
+data class TranscriptionHistoryEntry(
+    val id: String,
+    val text: String,
+    val createdAtMillis: Long,
+)

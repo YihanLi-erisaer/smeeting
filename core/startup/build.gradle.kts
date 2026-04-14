@@ -1,4 +1,4 @@
-plugins {
+﻿plugins {
     id("com.android.library")
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.hilt)
@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.kotlin_asr_with_ncnn.core.startup"
+    namespace = "com.stardazz.smeeting.core.startup"
     compileSdk = 35
 
     defaultConfig {

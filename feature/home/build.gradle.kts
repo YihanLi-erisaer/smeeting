@@ -1,4 +1,4 @@
-plugins {
+﻿plugins {
     id("com.android.library")
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.kotlin_asr_with_ncnn.feature.home"
+    namespace = "com.stardazz.smeeting.feature.home"
     compileSdk = 35
 
     defaultConfig {

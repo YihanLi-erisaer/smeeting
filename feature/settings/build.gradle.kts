@@ -1,11 +1,11 @@
-plugins {
+﻿plugins {
     id("com.android.library")
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
 
 android {
-    namespace = "com.example.kotlin_asr_with_ncnn.feature.settings"
+    namespace = "com.stardazz.smeeting.feature.settings"
     compileSdk = 35
 
     defaultConfig {

@@ -140,7 +140,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved) {
 }
 
 JNIEXPORT jboolean JNICALL
-Java_com_example_kotlin_1asr_1with_1ncnn_core_media_NcnnNativeBridge_initModelNative(
+Java_com_stardazz_smeeting_core_media_NcnnNativeBridge_initModelNative(
         JNIEnv* env, jobject thiz, jobject asset_manager,
         jstring encoder_param, jstring encoder_bin,
         jstring decoder_param, jstring decoder_bin,
@@ -269,7 +269,7 @@ Java_com_example_kotlin_1asr_1with_1ncnn_core_media_NcnnNativeBridge_initModelNa
 }
 
 JNIEXPORT void JNICALL
-Java_com_example_kotlin_1asr_1with_1ncnn_core_media_NcnnNativeBridge_releaseModelNative(JNIEnv* env, jobject thiz) {
+Java_com_stardazz_smeeting_core_media_NcnnNativeBridge_releaseModelNative(JNIEnv* env, jobject thiz) {
     {
         std::lock_guard<std::mutex> t_lock(g_thread_mutex);
         {
@@ -301,7 +301,7 @@ Java_com_example_kotlin_1asr_1with_1ncnn_core_media_NcnnNativeBridge_releaseMode
 }
 
 JNIEXPORT void JNICALL
-Java_com_example_kotlin_1asr_1with_1ncnn_core_media_NcnnNativeBridge_startInference(JNIEnv* env, jobject thiz) {
+Java_com_stardazz_smeeting_core_media_NcnnNativeBridge_startInference(JNIEnv* env, jobject thiz) {
     std::lock_guard<std::mutex> t_lock(g_thread_mutex);
     {
         std::lock_guard<std::mutex> s_lock(g_state_mutex);
@@ -317,7 +317,7 @@ Java_com_example_kotlin_1asr_1with_1ncnn_core_media_NcnnNativeBridge_startInfere
 }
 
 JNIEXPORT void JNICALL
-Java_com_example_kotlin_1asr_1with_1ncnn_core_media_NcnnNativeBridge_stopInference(JNIEnv* env, jobject thiz) {
+Java_com_stardazz_smeeting_core_media_NcnnNativeBridge_stopInference(JNIEnv* env, jobject thiz) {
     {
         std::lock_guard<std::mutex> lock(g_state_mutex);
         if (!g_is_running) return;
@@ -329,7 +329,7 @@ Java_com_example_kotlin_1asr_1with_1ncnn_core_media_NcnnNativeBridge_stopInferen
 }
 
 JNIEXPORT void JNICALL
-Java_com_example_kotlin_1asr_1with_1ncnn_core_media_NcnnNativeBridge_signalInputFinished(JNIEnv* env, jobject thiz) {
+Java_com_stardazz_smeeting_core_media_NcnnNativeBridge_signalInputFinished(JNIEnv* env, jobject thiz) {
     g_flush_done = false;
     {
         std::lock_guard<std::mutex> lock(g_audio_mutex);
@@ -341,7 +341,7 @@ Java_com_example_kotlin_1asr_1with_1ncnn_core_media_NcnnNativeBridge_signalInput
 }
 
 JNIEXPORT void JNICALL
-Java_com_example_kotlin_1asr_1with_1ncnn_core_media_NcnnNativeBridge_feedAudioData(JNIEnv* env, jobject thiz, jshortArray data) {
+Java_com_stardazz_smeeting_core_media_NcnnNativeBridge_feedAudioData(JNIEnv* env, jobject thiz, jshortArray data) {
     jsize len = env->GetArrayLength(data);
     jshort* body = env->GetShortArrayElements(data, nullptr);
     if (!body) return;
@@ -360,12 +360,12 @@ Java_com_example_kotlin_1asr_1with_1ncnn_core_media_NcnnNativeBridge_feedAudioDa
 }
 
 JNIEXPORT jint JNICALL
-Java_com_example_kotlin_1asr_1with_1ncnn_core_media_NcnnNativeBridge_getStatus(JNIEnv* env, jobject thiz) {
+Java_com_stardazz_smeeting_core_media_NcnnNativeBridge_getStatus(JNIEnv* env, jobject thiz) {
     return (jint)g_status.load();
 }
 
 JNIEXPORT jboolean JNICALL
-Java_com_example_kotlin_1asr_1with_1ncnn_core_media_NcnnNativeBridge_getEncoderUsesVulkanNative(
+Java_com_stardazz_smeeting_core_media_NcnnNativeBridge_getEncoderUsesVulkanNative(
         JNIEnv* env, jobject thiz) {
     std::lock_guard<std::mutex> lock(g_state_mutex);
     if (!g_recognizer) {

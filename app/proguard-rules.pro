@@ -1,4 +1,4 @@
-# Add project specific ProGuard rules here.
+﻿# Add project specific ProGuard rules here.
 # You can control the set of applied configuration files using the
 # proguardFiles setting in build.gradle.
 #
@@ -22,7 +22,7 @@
 
 # Keep the JNI bridge class and its members because the native layer binds to
 # the generated Java/Kotlin symbol names directly.
--keep class com.example.kotlin_asr_with_ncnn.core.media.NcnnNativeBridge { *; }
+-keep class com.stardazz.smeeting.core.media.NcnnNativeBridge { *; }
 -keepclasseswithmembernames class * {
     native <methods>;
 }
