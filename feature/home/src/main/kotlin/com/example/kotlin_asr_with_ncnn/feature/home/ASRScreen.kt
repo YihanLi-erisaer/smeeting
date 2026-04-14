@@ -27,6 +27,12 @@ fun ASRScreen(
     val clipboardManager = LocalClipboardManager.current
     val snackbarHostState = remember { SnackbarHostState() }
     val outputScrollState = rememberScrollState()
+    val resultText = when {
+        isModelLoading -> stringResource(R.string.loading_model_please_wait)
+        modelErrorMessage != null -> modelErrorMessage
+        uiState.isListening && uiState.resultText.isBlank() -> stringResource(R.string.recording)
+        else -> uiState.resultText
+    }
 
     LaunchedEffect(viewModel) {
         viewModel.effect.collectLatest { effect ->
@@ -39,6 +45,12 @@ fun ASRScreen(
                 }
             }
         }
+    }
+
+    LaunchedEffect(resultText) {
+        // Wait for the new text to be laid out before following the latest streamed output.
+        withFrameNanos { }
+        outputScrollState.scrollTo(outputScrollState.maxValue)
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -72,12 +84,7 @@ fun ASRScreen(
                         .padding(16.dp)
                 ) {
                     Text(
-                        text = when {
-                            isModelLoading -> stringResource(R.string.loading_model_please_wait)
-                            modelErrorMessage != null -> modelErrorMessage
-                            uiState.isListening && uiState.resultText.isBlank() -> stringResource(R.string.recording)
-                            else -> uiState.resultText
-                        },
+                        text = resultText,
                         modifier = Modifier
                             .fillMaxSize()
                             .verticalScroll(outputScrollState),
