@@ -5,6 +5,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -12,6 +13,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import com.stardazz.smeeting.core.common.ThemeMode
 import com.stardazz.smeeting.core.common.ThemePreferences
 import com.stardazz.smeeting.core.ui.AppTheme
 import com.stardazz.smeeting.core.ui.ThemeState
@@ -41,7 +43,13 @@ fun MainAppScreen(
         mainUiViewModel.onBack()
     }
 
-    AppTheme(darkTheme = themeState.darkTheme) {
+    val darkTheme = when (themeState.themeMode) {
+        ThemeMode.FOLLOW_SYSTEM -> isSystemInDarkTheme()
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+    }
+
+    AppTheme(darkTheme = darkTheme) {
         Surface(color = MaterialTheme.colorScheme.background) {
             Box(modifier = Modifier.fillMaxSize()) {
                 AnimatedContent(
@@ -80,11 +88,11 @@ fun MainAppScreen(
                     when (screen) {
                         MainScreen.Settings -> {
                             SettingsScreen(
-                                darkTheme = themeState.darkTheme,
+                                themeMode = themeState.themeMode,
                                 useBeamSearch = useBeamSearch,
                                 appVersion = appVersion,
                                 inferenceBackendLabel = inferenceBackendLabel,
-                                onDarkThemeChanged = { themeState.updateDarkTheme(it) },
+                                onThemeModeChanged = { themeState.updateThemeMode(it) },
                                 onUseBeamSearchChanged = {
                                     scope.launch { themePreferences.setUseBeamSearch(it) }
                                 },

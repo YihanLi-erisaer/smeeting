@@ -13,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.lifecycleScope
 import com.stardazz.smeeting.core.common.ThemePreferences
+import com.stardazz.smeeting.core.common.ThemeMode
 import com.stardazz.smeeting.core.media.InferenceBackend
 import com.stardazz.smeeting.core.media.NcnnNativeBridge
 import com.stardazz.smeeting.core.ui.rememberThemeState
@@ -42,7 +43,7 @@ class MainActivity : ComponentActivity() {
             requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
         }
         setContent {
-            val darkTheme by themePreferences.darkThemeFlow.collectAsState(initial = false)
+            val themeMode by themePreferences.themeModeFlow.collectAsState(initial = ThemeMode.FOLLOW_SYSTEM)
             val useBeamSearch by themePreferences.useBeamSearchFlow.collectAsState(initial = false)
             val modelInitState by mainUiViewModel.modelInitState.collectAsState()
             val currentScreen by mainUiViewModel.currentScreen.collectAsState()
@@ -57,8 +58,8 @@ class MainActivity : ComponentActivity() {
                 }
             }
             val themeState = rememberThemeState(
-                initialDarkTheme = darkTheme,
-                onThemeChanged = { lifecycleScope.launch { themePreferences.setDarkTheme(it) } }
+                initialThemeMode = themeMode,
+                onThemeModeChanged = { lifecycleScope.launch { themePreferences.setThemeMode(it) } },
             )
             val appVersion = remember { getAppVersion() }
 

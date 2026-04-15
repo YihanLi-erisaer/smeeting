@@ -6,27 +6,28 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.stardazz.smeeting.core.common.ThemeMode
 
 @Stable
 class ThemeState internal constructor(
-    initialDarkTheme: Boolean,
-    private val onThemeChanged: (Boolean) -> Unit
+    initialThemeMode: ThemeMode,
+    private val onThemeModeChanged: (ThemeMode) -> Unit,
 ) {
-    var darkTheme by mutableStateOf(initialDarkTheme)
+    var themeMode by mutableStateOf(initialThemeMode)
         private set
 
-    fun updateDarkTheme(isDarkTheme: Boolean) {
-        darkTheme = isDarkTheme
-        onThemeChanged(isDarkTheme)
+    fun updateThemeMode(mode: ThemeMode) {
+        themeMode = mode
+        onThemeModeChanged(mode)
     }
 }
 
 @Composable
 fun rememberThemeState(
-    initialDarkTheme: Boolean,
-    onThemeChanged: (Boolean) -> Unit
+    initialThemeMode: ThemeMode,
+    onThemeModeChanged: (ThemeMode) -> Unit,
 ): ThemeState {
-    return remember(initialDarkTheme, onThemeChanged) {
-        ThemeState(initialDarkTheme = initialDarkTheme, onThemeChanged = onThemeChanged)
+    return remember(initialThemeMode, onThemeModeChanged) {
+        ThemeState(initialThemeMode = initialThemeMode, onThemeModeChanged = onThemeModeChanged)
     }
 }

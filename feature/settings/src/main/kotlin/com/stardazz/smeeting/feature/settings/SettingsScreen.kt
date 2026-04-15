@@ -7,15 +7,16 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.stardazz.smeeting.core.common.ThemeMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    darkTheme: Boolean,
+    themeMode: ThemeMode,
     useBeamSearch: Boolean,
     appVersion: String,
     inferenceBackendLabel: String,
-    onDarkThemeChanged: (Boolean) -> Unit,
+    onThemeModeChanged: (ThemeMode) -> Unit,
     onUseBeamSearchChanged: (Boolean) -> Unit,
     onBack: () -> Unit
 ) {
@@ -37,21 +38,36 @@ fun SettingsScreen(
                 .padding(padding)
                 .padding(16.dp)
         ) {
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
                     text = stringResource(R.string.dark_theme),
-                    style = MaterialTheme.typography.bodyLarge
+                    style = MaterialTheme.typography.bodyLarge,
                 )
-                Switch(
-                    checked = darkTheme,
-                    onCheckedChange = onDarkThemeChanged
+                val options = ThemeMode.entries
+                val labels = mapOf(
+                    ThemeMode.FOLLOW_SYSTEM to stringResource(R.string.theme_follow_system),
+                    ThemeMode.LIGHT to stringResource(R.string.theme_light),
+                    ThemeMode.DARK to stringResource(R.string.theme_dark),
                 )
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    options.forEachIndexed { index, mode ->
+                        SegmentedButton(
+                            selected = themeMode == mode,
+                            onClick = { onThemeModeChanged(mode) },
+                            shape = SegmentedButtonDefaults.itemShape(
+                                index = index,
+                                count = options.size,
+                            ),
+                        ) {
+                            Text(labels[mode] ?: mode.name)
+                        }
+                    }
+                }
             }
 
             Row(
