@@ -89,7 +89,7 @@ fun ASRScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
+                    .weight(1f)
             ) {
                 Box(
                     modifier = Modifier
