@@ -72,8 +72,9 @@ fun ASRScreen(
                 .fillMaxSize()
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
         ) {
+            Spacer(modifier = Modifier.weight(1f))
+
             Text(
                 text = when {
                     isModelLoading -> stringResource(R.string.loading_model)
@@ -89,7 +90,7 @@ fun ASRScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
+                    .weight(3f)
             ) {
                 Box(
                     modifier = Modifier
@@ -136,6 +137,8 @@ fun ASRScreen(
             Spacer(modifier = Modifier.height(36.dp))
 
             Text(text = stringResource(R.string.ai_mistakes_warning), style = MaterialTheme.typography.labelSmall)
+
+            Spacer(modifier = Modifier.weight(1f))
         }
 
         IconButton(
