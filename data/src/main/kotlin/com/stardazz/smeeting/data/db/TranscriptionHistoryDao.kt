@@ -21,6 +21,9 @@ interface TranscriptionHistoryDao {
     @Query("SELECT COUNT(*) FROM transcription_history")
     suspend fun count(): Int
 
+    @Query("UPDATE transcription_history SET summary = :summary WHERE id = :id")
+    suspend fun updateSummary(id: String, summary: String)
+
     /** Remove the N oldest rows so the table stays within a size cap. */
     @Query(
         """

@@ -9,4 +9,6 @@ interface TranscriptionHistoryRepository {
     suspend fun append(text: String)
 
     suspend fun remove(id: String)
+
+    suspend fun updateSummary(id: String, summary: String)
 }

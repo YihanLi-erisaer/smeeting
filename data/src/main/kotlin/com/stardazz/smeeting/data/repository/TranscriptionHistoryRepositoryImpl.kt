@@ -40,4 +40,8 @@ class TranscriptionHistoryRepositoryImpl @Inject constructor(
     override suspend fun remove(id: String) {
         dao.deleteById(id)
     }
+
+    override suspend fun updateSummary(id: String, summary: String) {
+        dao.updateSummary(id, summary)
+    }
 }

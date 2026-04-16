@@ -1,6 +1,7 @@
 ﻿package com.stardazz.smeeting.data.repository
 
 import android.util.Log
+import com.stardazz.smeeting.core.common.InferenceCoordinator
 import com.stardazz.smeeting.core.media.AudioRecorder
 import com.stardazz.smeeting.core.media.NcnnNativeBridge
 import com.stardazz.smeeting.domain.model.Transcription
@@ -11,6 +12,7 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -267,7 +269,8 @@ private fun toSentenceCase(text: String): String {
 @Singleton
 class ASRRepositoryImpl @Inject constructor(
     private val nativeBridge: NcnnNativeBridge,
-    private val audioRecorder: AudioRecorder
+    private val audioRecorder: AudioRecorder,
+    private val coordinator: InferenceCoordinator,
 ) : ASRRepository {
 
     private val TAG = "ASRRepositoryImpl"
@@ -350,12 +353,17 @@ class ASRRepositoryImpl @Inject constructor(
 
     override fun startListening(): Flow<Transcription> {
         Log.d(TAG, "startListening: Streaming audio to ASR")
+
+        if (!runBlocking { coordinator.acquireAsr() }) {
+            Log.w(TAG, "Cannot start ASR: LLM is currently active")
+            return _transcriptionFlow.asSharedFlow()
+        }
+
         accumulatedText = StringBuilder()
         currentUtterance = ""
 
         _transcriptionFlow.tryEmit(Transcription("0", "", 0f, 0L, false))
 
-        // Start inference loop first, then stream audio chunks as they arrive
         nativeBridge.startInference()
 
         audioRecorder.start(object : AudioRecorder.AudioDataListener {
@@ -373,7 +381,6 @@ class ASRRepositoryImpl @Inject constructor(
         withContext(Dispatchers.Default) {
             nativeBridge.signalInputFinished()
             nativeBridge.stopInference()
-            // On Stop: always end with TEXT_ENDING (。.? ! etc.) — never comma/ellipsis, any word count.
             val fullText = (accumulatedText.toString() + if (currentUtterance.isNotEmpty()) {
                 val prev = accumulatedText.toString().trimEnd()
                 val toAppend = currentUtterance.trim()
@@ -399,6 +406,7 @@ class ASRRepositoryImpl @Inject constructor(
                 }
             }
             Log.d(TAG, "Streaming inference completed")
+            coordinator.release()
         }
     }
 

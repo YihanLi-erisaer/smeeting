@@ -4,4 +4,5 @@ data class TranscriptionHistoryEntry(
     val id: String,
     val text: String,
     val createdAtMillis: Long,
+    val summary: String? = null,
 )

@@ -15,4 +15,13 @@
     <string name="history_detail_title">记录详情</string>
     <string name="history_empty">暂无记录。\n结束一次录音识别后会自动保存在这里。</string>
     <string name="history_copied">已复制</string>
+    <string name="summary_title">AI 总结</string>
+    <string name="summary_summarize">总结</string>
+    <string name="summary_regenerate">重新总结</string>
+    <string name="summary_generating">正在生成总结…</string>
+    <string name="summary_cancel">取消</string>
+    <string name="summary_copy">复制总结</string>
+    <string name="summary_download_model">下载 AI 模型</string>
+    <string name="summary_downloading">正在下载模型… %1$d%%</string>
+    <string name="summary_loading_model">正在加载 AI 模型…</string>
 </resources>

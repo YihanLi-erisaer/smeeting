@@ -2,6 +2,7 @@
 
 import android.app.Application
 import com.stardazz.smeeting.core.startup.tasks.InitAsrModelTask
+import com.stardazz.smeeting.core.startup.tasks.InitLlmModelTask
 import com.stardazz.smeeting.core.startup.tasks.InitLoggingTask
 import com.stardazz.smeeting.core.startup.tasks.ReadDisplayPreferencesTask
 import com.stardazz.smeeting.core.startup.tasks.WarmAppMetadataTask
@@ -23,6 +24,10 @@ class AsrStartupTaskProvider(
                 app = application,
                 manager = ep.asrModelManager(),
                 notifier = ep.modelInitNotifier(),
+            ),
+            InitLlmModelTask(
+                app = application,
+                manager = ep.llmModelManager(),
             ),
         )
     }

@@ -9,6 +9,7 @@ import dagger.hilt.components.SingletonComponent
 @InstallIn(SingletonComponent::class)
 interface StartupEntryPoint {
     fun asrModelManager(): AsrModelManager
+    fun llmModelManager(): LlmModelManager
     fun themePreferences(): ThemePreferences
     fun modelInitNotifier(): ModelInitNotifier
 }

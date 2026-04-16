@@ -31,6 +31,7 @@ android {
 dependencies {
     implementation(project(":domain"))
     implementation(project(":core:media"))
+    implementation(project(":core:llm"))
     implementation(project(":core:common"))
 
     implementation(libs.androidx.core.ktx)

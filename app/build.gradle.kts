@@ -15,7 +15,7 @@ android {
         minSdk = 27
         targetSdk = 35
         versionCode = 1
-        versionName = "3.3.16"
+        versionName = "4.0.0beta"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
@@ -68,6 +68,7 @@ dependencies {
     
     // Modules
     implementation(project(":core:media"))
+    implementation(project(":core:llm"))
     implementation(project(":core:startup"))
     implementation(project(":core:ui"))
     implementation(project(":core:common"))

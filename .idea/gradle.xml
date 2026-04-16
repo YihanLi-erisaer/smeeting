@@ -12,6 +12,7 @@
             <option value="$PROJECT_DIR$/app" />
             <option value="$PROJECT_DIR$/core" />
             <option value="$PROJECT_DIR$/core/common" />
+            <option value="$PROJECT_DIR$/core/llm" />
             <option value="$PROJECT_DIR$/core/media" />
             <option value="$PROJECT_DIR$/core/startup" />
             <option value="$PROJECT_DIR$/core/ui" />

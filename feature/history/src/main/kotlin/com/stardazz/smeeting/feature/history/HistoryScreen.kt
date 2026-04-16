@@ -5,7 +5,6 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.text.format.DateUtils
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -22,9 +21,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -38,12 +40,15 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -70,6 +75,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.stardazz.smeeting.core.startup.LlmModelState
 import com.stardazz.smeeting.domain.model.TranscriptionHistoryEntry
 import kotlinx.coroutines.launch
 
@@ -80,6 +86,9 @@ fun HistoryScreen(
     onBack: () -> Unit,
 ) {
     val entries by viewModel.entries.collectAsState()
+    val llmState by viewModel.llmState.collectAsState()
+    val summarizingEntryId by viewModel.summarizingEntryId.collectAsState()
+    val streamingText by viewModel.streamingText.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -107,6 +116,7 @@ fun HistoryScreen(
                         onClick = {
                             detailMenuExpanded = false
                             if (isShowingDetail) {
+                                viewModel.cancelSummarize()
                                 selectedEntryId = null
                             } else {
                                 onBack()
@@ -180,6 +190,16 @@ fun HistoryScreen(
                 HistoryEntryDetail(
                     item = entry,
                     contentPadding = padding,
+                    llmState = llmState,
+                    isSummarizing = summarizingEntryId == entry.id,
+                    streamingText = if (summarizingEntryId == entry.id) streamingText else "",
+                    onSummarize = { viewModel.summarize(entry) },
+                    onCancelSummarize = { viewModel.cancelSummarize() },
+                    onDownloadModel = { viewModel.downloadLlmModel(context) },
+                    onCopySummary = { text ->
+                        copyToClipboard(context, text)
+                        scope.launch { snackbarHostState.showSnackbar(copiedMessage) }
+                    },
                 )
             } else if (entries.isEmpty()) {
                 Box(
@@ -376,8 +396,20 @@ private fun HistoryEntryRow(
 private fun HistoryEntryDetail(
     item: TranscriptionHistoryEntry,
     contentPadding: PaddingValues,
+    llmState: LlmModelState,
+    isSummarizing: Boolean,
+    streamingText: String,
+    onSummarize: () -> Unit,
+    onCancelSummarize: () -> Unit,
+    onDownloadModel: () -> Unit,
+    onCopySummary: (String) -> Unit,
 ) {
     val scrollState = rememberScrollState()
+    val displaySummary = when {
+        isSummarizing && streamingText.isNotEmpty() -> streamingText
+        !item.summary.isNullOrEmpty() -> item.summary
+        else -> null
+    }
 
     Column(
         modifier = Modifier
@@ -409,6 +441,114 @@ private fun HistoryEntryDetail(
                         text = item.text,
                         style = MaterialTheme.typography.bodyLarge,
                     )
+
+                    if (displaySummary != null) {
+                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            text = stringResource(R.string.summary_title),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = displaySummary,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        if (isSummarizing) {
+                            Spacer(Modifier.height(4.dp))
+                            LinearProgressIndicator(
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        SummarizeActionBar(
+            llmState = llmState,
+            isSummarizing = isSummarizing,
+            hasSummary = !item.summary.isNullOrEmpty(),
+            onSummarize = onSummarize,
+            onCancelSummarize = onCancelSummarize,
+            onDownloadModel = onDownloadModel,
+            onCopySummary = {
+                val text = displaySummary
+                if (!text.isNullOrEmpty()) onCopySummary(text)
+            },
+        )
+    }
+}
+
+@Composable
+private fun SummarizeActionBar(
+    llmState: LlmModelState,
+    isSummarizing: Boolean,
+    hasSummary: Boolean,
+    onSummarize: () -> Unit,
+    onCancelSummarize: () -> Unit,
+    onDownloadModel: () -> Unit,
+    onCopySummary: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        when {
+            isSummarizing -> {
+                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                Text(
+                    text = stringResource(R.string.summary_generating),
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedButton(onClick = onCancelSummarize) {
+                    Text(stringResource(R.string.summary_cancel))
+                }
+            }
+            llmState is LlmModelState.NotDownloaded || llmState is LlmModelState.Error -> {
+                Button(onClick = onDownloadModel, modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.summary_download_model))
+                }
+            }
+            llmState is LlmModelState.Downloading -> {
+                val progress = llmState.progress
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.summary_downloading, (progress * 100).toInt()),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+            llmState is LlmModelState.Loading -> {
+                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                Text(
+                    text = stringResource(R.string.summary_loading_model),
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            llmState is LlmModelState.Ready -> {
+                Button(onClick = onSummarize, modifier = Modifier.weight(1f)) {
+                    Text(
+                        if (hasSummary) stringResource(R.string.summary_regenerate)
+                        else stringResource(R.string.summary_summarize)
+                    )
+                }
+                if (hasSummary) {
+                    OutlinedButton(onClick = onCopySummary) {
+                        Text(stringResource(R.string.summary_copy))
+                    }
+                }
+            }
+            else -> {
+                Button(onClick = onDownloadModel, modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.summary_download_model))
                 }
             }
         }

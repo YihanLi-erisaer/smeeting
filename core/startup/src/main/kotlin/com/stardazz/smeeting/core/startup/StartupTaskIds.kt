@@ -5,4 +5,5 @@ object StartupTaskIds {
     const val WARM_APP_META = "warm_app_meta"
     const val DISPLAY_PREFS = "display_prefs"
     const val ASR_MODEL = "asr_model"
+    const val LLM_MODEL = "llm_model"
 }

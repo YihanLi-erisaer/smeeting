@@ -15,4 +15,13 @@
     <string name="history_detail_title">History detail</string>
     <string name="history_empty">No saved transcriptions yet.\nThey appear here after you stop recording.</string>
     <string name="history_copied">Copied</string>
+    <string name="summary_title">AI Summary</string>
+    <string name="summary_summarize">Summarize</string>
+    <string name="summary_regenerate">Re-summarize</string>
+    <string name="summary_generating">Generating summary…</string>
+    <string name="summary_cancel">Cancel</string>
+    <string name="summary_copy">Copy Summary</string>
+    <string name="summary_download_model">Download AI Model</string>
+    <string name="summary_downloading">Downloading model… %1$d%%</string>
+    <string name="summary_loading_model">Loading AI model…</string>
 </resources>
