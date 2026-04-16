@@ -8,4 +8,11 @@
     <string name="beam_search">束搜索</string>
     <string name="beam_search_subtitle">默认贪心搜索。打开时：修改波束搜索，通常较慢准确度较高。</string>
     <string name="app_version">应用版本</string>
+    <string name="inference_backend" translatable="false">推理计算</string>
+    <string name="inference_backend_subtitle">GPU可用时使用；否则使用CPU。</string>
+    <string name="inference_backend_gpu">GPU (Vulkan)</string>
+    <string name="inference_backend_cpu">CPU</string>
+    <string name="inference_backend_loading">加载中…</string>
+    <string name="inference_backend_unavailable">不可用</string>
+    <string name="inference_backend_unknown">未知</string>
 </resources>
