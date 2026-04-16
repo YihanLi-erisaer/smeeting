@@ -149,6 +149,7 @@ Figures depend on device, model, and Vulkan availability. The performance data o
 | Chinese Accuracy (in quiet environment)     | ~95%  |
 | English Accuracy (in chaos environment)     | ~92%  |
 | English Accuracy (in quiet environment)     | ~97%  |
+
 **performance on a android device Helio G99 (CPU) processor running LLM model**
 | Metric       | Value   |
 | ------------ | ------- |
