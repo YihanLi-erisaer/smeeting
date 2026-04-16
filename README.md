@@ -117,29 +117,12 @@ If CMake fails for **`armeabi-v7a`**, the project disables **GGML LLAMAFILE** fo
 ---
 
 ## User interface (screenshots)
-
-Screenshots are **not** embedded in this README. Add your own under e.g. `docs/screenshots/` and reference them here.
-
-| Placeholder | Suggested capture |
-|-------------|-------------------|
-| `<!-- SCREENSHOT: home-asr -->` | <img width="317" height="686" alt="image" src="https://github.com/user-attachments/assets/8b7ec787-c421-4074-bf2d-ea4b1521b82b" />
- |
-| `<!-- SCREENSHOT: history-list -->` | <img width="316" height="684" alt="image" src="https://github.com/user-attachments/assets/37fb8a4d-45c6-4fb0-b75b-900e6ee88b23" />
- |
-| `<!-- SCREENSHOT: history-detail -->` | <img width="314" height="685" alt="image" src="https://github.com/user-attachments/assets/dd134a00-eb32-40d0-aee8-c7f90fa9d4da" />
- |
-| `<!-- SCREENSHOT: history-summary -->` | <img width="317" height="685" alt="image" src="https://github.com/user-attachments/assets/6e25f5ba-0016-4c17-8c78-49a6a8253e30" />
- |
- | `<!-- SCREENSHOT: history-summary -->` | <img width="316" height="681" alt="image" src="https://github.com/user-attachments/assets/cbabcd98-39e0-4522-ae85-94b602e807b7" />
- |
-| `<!-- SCREENSHOT: settings -->` | <img width="317" height="686" alt="image" src="https://github.com/user-attachments/assets/592b7108-b487-4093-b8a5-7c27f55d8adb" />
- |
-
-Example markdown once files exist:
-
-```markdown
-![Home ASR](docs/screenshots/home-asr.png)
-```
+<img width="317" height="686" alt="image" src="https://github.com/user-attachments/assets/8b7ec787-c421-4074-bf2d-ea4b1521b82b" />
+<img width="316" height="684" alt="image" src="https://github.com/user-attachments/assets/37fb8a4d-45c6-4fb0-b75b-900e6ee88b23" />
+<img width="314" height="685" alt="image" src="https://github.com/user-attachments/assets/dd134a00-eb32-40d0-aee8-c7f90fa9d4da" />
+<img width="317" height="685" alt="image" src="https://github.com/user-attachments/assets/6e25f5ba-0016-4c17-8c78-49a6a8253e30" />
+<img width="316" height="681" alt="image" src="https://github.com/user-attachments/assets/cbabcd98-39e0-4522-ae85-94b602e807b7" />
+<img width="317" height="686" alt="image" src="https://github.com/user-attachments/assets/592b7108-b487-4093-b8a5-7c27f55d8adb" />
 
 ---
 
