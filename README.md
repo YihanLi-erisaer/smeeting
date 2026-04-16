@@ -123,6 +123,8 @@ If CMake fails for **`armeabi-v7a`**, the project disables **GGML LLAMAFILE** fo
 <img width="317" height="685" alt="image" src="https://github.com/user-attachments/assets/6e25f5ba-0016-4c17-8c78-49a6a8253e30" />
 <img width="316" height="681" alt="image" src="https://github.com/user-attachments/assets/cbabcd98-39e0-4522-ae85-94b602e807b7" />
 <img width="317" height="686" alt="image" src="https://github.com/user-attachments/assets/592b7108-b487-4093-b8a5-7c27f55d8adb" />
+<img width="317" height="685" alt="image" src="https://github.com/user-attachments/assets/e28b4b89-bf95-4fab-a51b-9111835007d9" />
+
 
 ---
 
