@@ -18,6 +18,12 @@ set(GGML_CUDA OFF CACHE BOOL "" FORCE)
 set(GGML_VULKAN OFF CACHE BOOL "" FORCE)
 set(GGML_OPENCL OFF CACHE BOOL "" FORCE)
 
+# armeabi-v7a: llamafile sgemm uses NEON FP16 intrinsics (vld1_f16) that are not available on
+# typical 32-bit ARM targets; disable before add_subdirectory so ggml skips that code path.
+if(ANDROID_ABI STREQUAL "armeabi-v7a")
+    set(GGML_LLAMAFILE OFF CACHE BOOL "" FORCE)
+endif()
+
 if(EXISTS "${LLAMA_CPP_DIR}/CMakeLists.txt")
     add_subdirectory(${LLAMA_CPP_DIR} llama.cpp)
 else()
