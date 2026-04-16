@@ -1,187 +1,148 @@
-# Kotlin-Zipformer: On-device Streaming Speech Recognition System
+# Kotlin ASR with NCNN
+
+On-device **streaming speech recognition** for Android, powered by **Sherpa-NCNN** and **ncnn**, plus optional **on-device text summarization** of saved transcripts using **llama.cpp** and a small **Qwen2.5** GGUF model.
+
+---
 
 ## Overview
 
-This project presents an on-device automatic speech recognition (ASR) system implemented in Kotlin, based on the Zipformer architecture. The system enables real-time speech-to-text transcription on edge devices, without reliance on cloud services.
-
-The project focuses on bridging modern deep learning-based ASR models with practical mobile deployment, emphasizing latency, memory efficiency, and usability in real-world scenarios.
-
----
-
-## Motivation
-
-Recent advances in speech recognition have been dominated by Transformer-based models such as Conformer and Whisper. However, these models often require significant computational resources, making them less suitable for on-device inference.
-
-Zipformer is a recently proposed architecture designed to improve both efficiency and accuracy in ASR systems. It introduces a multi-scale U-Net-like encoder and optimized attention mechanisms, enabling faster and more memory-efficient inference.
-
-This project aims to explore how such state-of-the-art models can be effectively deployed in a Kotlin-based application environment.
-
----
-## How to Use
-
-This section provides instructions for running the Kotlin-Zipformer on-device ASR system.
-
-### 1. Prerequisites
-
-- **Operating System:** Android 10+ / JVM compatible OS (Download and install the release APK only need Android 10+)
-- **Kotlin Version:** 1.8+  
-- **Dependencies:**  
-  - sherpa-ncnn (for model inference)  
-  - Gradle 7.0+  
-  - Audio recording permissions on mobile devices  
+- **ASR**: Real-time speech-to-text runs entirely on the device (no cloud ASR). Audio is captured at 16 kHz mono, processed through a native JNI pipeline, and results are shown in a Jetpack Compose UI.
+- **Privacy**: Microphone audio and ASR inference stay on-device. Transcripts can be stored in local history (Room).
+- **Summaries (optional)**: From **Transcription history**, you can download a quantized LLM (~1 GB) once, then generate **streaming summaries** (key points, action items, etc.). Inference uses **llama.cpp** on the CPU; ASR and LLM are coordinated so they do not run at the same time to reduce memory pressure.
 
 ---
 
-### 2. Clone the Repository
+## Features
+
+| Area | Description |
+|------|-------------|
+| Streaming ASR | Live partial and final transcripts with endpointing |
+| GPU / CPU | Tries Vulkan for the encoder when available, falls back to CPU |
+| History | Saved entries, copy/delete, detail view |
+| On-device LLM | Download **Qwen2.5-1.5B-Instruct** `Q4_K_M` GGUF; summarize history entries offline |
+| Settings | Theme, beam search, and related preferences |
+
+---
+
+## Architecture
+
+Gradle modules (simplified):
+
+| Module | Role |
+|--------|------|
+| `:app` | Application shell, navigation, Hilt |
+| `:domain` | Models, repository interfaces, use cases |
+| `:data` | Room, repository implementations (ASR, history, LLM) |
+| `:core:media` | Audio capture, **Sherpa-NCNN** JNI (`ncnn_asr`) |
+| `:core:llm` | **llama.cpp** via JNI (`llm_inference`) |
+| `:core:startup` | Startup DAG, **ASR** and **LLM** model lifecycle (`AsrModelManager`, `LlmModelManager`) |
+| `:core:common` | Shared utilities (e.g. inference coordination) |
+| `:core:ui` | Compose theme |
+| `:feature:home` | Main ASR screen |
+| `:feature:history` | History list, detail, summarize / download UI |
+| `:feature:settings` | Settings screen |
+
+Native ASR follows the upstream **sherpa-ncnn** / **ncnn** integration pattern (see project `CMakeLists.txt` and `sherpa-ncnn` tree). The LLM stack is a **git submodule** under `core/llm/src/main/cpp/llama.cpp`.
+
+---
+
+## Requirements
+
+- **Android Studio** with **Android SDK** and **NDK** (project uses native CMake for `:core:media` and `:core:llm`)
+- **JDK 17** (toolchain aligned with Gradle / Kotlin)
+- **Device / ABI**: `arm64-v8a` and `armeabi-v7a` (see `ndk { abiFilters … }` in Gradle)
+- **Permissions**: `RECORD_AUDIO`; `INTERNET` only for **downloading** the LLM GGUF (ASR itself does not require network)
+
+---
+
+## Clone and submodules
 
 ```bash
-git clone https://github.com/YihanLi-erisaer/Kotlin-zipformer.git
-cd Kotlin-zipformer
-git clone https://github.com/k2-fsa/sherpa-ncnn.git
-# more steps to set up for android see https://k2-fsa.github.io/sherpa/ncnn/android/build-sherpa-ncnn.html#download-sherpa-ncnn
+git clone <YOUR_REPO_URL>
+cd Kotlin-ASR-with-ncnn
+git submodule update --init --recursive
 ```
----
 
-## System Architecture
+Initialize at least:
 
-The system consists of the following components:
+- `core/llm/src/main/cpp/llama.cpp` — **llama.cpp** (for on-device summarization builds)
 
-1. **Audio Input Module**
-
-   * Captures real-time audio stream from device microphone
-   * Performs preprocessing (framing, normalization)
-
-2. **Feature Extraction**
-
-   * Converts raw waveform into acoustic features (e.g., log-Mel spectrogram)
-
-3. **Zipformer Inference Engine**
-
-   * Loads pretrained Zipformer model
-   * Performs streaming inference
-   * Maintains low-latency decoding
-
-4. **Decoding & Post-processing**
-
-   * Converts model outputs into text
-   * Applies token merging and formatting
-
-5. **Application Layer**
-
-   * Provides user interface and interaction
-   * Displays transcription results in real time
+Sherpa-ncnn / ncnn native libraries and ASR model assets for Android are **not** fully covered by this README; follow the official sherpa-ncnn Android build guide to produce the expected **`jniLibs`** and **assets** layout expected by `AsrModelManager` / native code in your environment.
 
 ---
 
-## Key Features
+## ASR model assets
 
-* **On-device inference**: No cloud dependency, ensuring privacy and low latency
-* **Streaming ASR**: Real-time transcription capability
-* **Efficient model architecture**: Leveraging Zipformer for reduced computational cost
-* **Cross-language support**: Supports Chinese-English mixed speech recognition
-* **Lightweight deployment**: Optimized for mobile environments
+Streaming ASR expects model files under Android **assets** (names such as `encoder.param`, `encoder.bin`, `decoder.*`, `joiner.*`, `tokens.txt`). Paths are wired in startup / native init — keep filenames consistent with `AsrModelManager` when you swap models.
 
 ---
 
-## Technical Highlights
+## On-device LLM (summarization)
 
-* Integration of state-of-the-art Zipformer ASR model
-* Efficient handling of streaming audio data
-* Optimization for latency-sensitive applications
-* Modular system design for extensibility
-* Start up optimization, Kotlin-Zipformer implements an **on-device ASR system** optimized for **low-latency and minimal memory usage**. The startup process is organized into three stages:
+| Item | Detail |
+|------|--------|
+| **Runtime** | **llama.cpp** (linked as `libllm_inference.so`) |
+| **Default model** | **Qwen2.5-1.5B-Instruct** GGUF **`q4_k_m`** (~1 GB on disk) |
+| **Storage** | Downloaded to app **internal storage**: `context.filesDir` / `qwen2.5-1.5b-instruct-q4_k_m.gguf` |
+| **Source** | Hugging Face: `Qwen/Qwen2.5-1.5B-Instruct-GGUF` (URL is defined in `LlmModelManager`) |
 
-1. **Application Bootstrap**  
-   - UI launches immediately while heavy initialization runs asynchronously using **Kotlin coroutines**.  
-   - Non-critical tasks (e.g., model checks) are deferred to background threads.
-
-2. **Model & Engine Setup**  
-   - **Lazy initialization** of Sherpa-NCNN + Zipformer engine.  
-   - Local **model caching** avoids redundant loading.  
-   - Asynchronous setup minimizes startup latency (~250MB memory)
-   - Inference on GPU if not available, trace back to CPU
-
-3. **Audio Pipeline Prewarming**  
-   - Microphone and feature extraction pipelines are preloaded.  
-   - Streaming buffers allocated in advance for **real-time first-frame processing**.
-
-> **Result:** Fast app launch, low-latency inference, and ready-to-use real-time ASR on mobile or edge devices.
----
-
-## Performance
-**performance on a android device Helio G99 (CPU) processor using armv8 libs**
-| Metric       | Value   |
-| ------------ | ------- |
-| Memory Usage | ~250 MB  |
-| Latency      | ~120 ms  |
-| Chinese Accuracy (in chaos environment)     | ~89%  |
-| Chinese Accuracy (in quiet environment)     | ~95%  |
-| English Accuracy (in chaos environment)     | ~92%  |
-| English Accuracy (in quiet environment)     | ~97%  |
+First-time summarization: use the in-app **download** action in history detail; after the file is present, the model is loaded and **Summarize** becomes available.
 
 ---
 
-## Technologies Used
+## Build
 
-* Kotlin (Android / JVM)
-* sherpa-ncnn / Native inference backend
-* Digital signal processing (DSP)
-* Deep learning-based ASR model (Zipformer)
+Open the **`Kotlin-ASR-with-ncnn`** directory in Android Studio and sync Gradle, then build **Debug** or **Release** for a physical ARM device (recommended) or a compatible emulator.
 
----
+```bash
+./gradlew :app:assembleDebug
+```
 
-## Use Cases
+On Windows:
 
-* Voice assistants
-* Real-time transcription
-* Accessibility tools
-* Edge AI applications
+```bat
+gradlew.bat :app:assembleDebug
+```
 
----
-
-## Language support
-
-* Chinese (Simplify)
-* English
+If CMake fails for **`armeabi-v7a`**, the project disables **GGML LLAMAFILE** for that ABI in `core/llm/src/main/cpp/CMakeLists.txt` to avoid NEON FP16 intrinsics that are unavailable on typical 32-bit ARM targets.
 
 ---
 
-## User Interface (The shown UI is in version 3.2.0)
+## User interface (screenshots)
 
-<img width="474" height="547" alt="image" src="https://github.com/user-attachments/assets/84afa1bd-c219-4438-a57f-19551a5378b4" />
-<img width="476" height="548" alt="image" src="https://github.com/user-attachments/assets/0bc25075-c356-4eae-9934-7c48b5c1676d" />
-<img width="476" height="548" alt="image" src="https://github.com/user-attachments/assets/833ad9b8-134e-4544-b3ab-7cfa6042b9df" />
-<img width="475" height="547" alt="image" src="https://github.com/user-attachments/assets/f12f75d9-a89f-47f4-acbe-39c4b6b03475" />
+Screenshots are **not** embedded in this README. Add your own under e.g. `docs/screenshots/` and reference them here.
 
----
+| Placeholder | Suggested capture |
+|-------------|-------------------|
+| `<!-- SCREENSHOT: home-asr -->` | Main screen: recording / streaming transcript, backend indicator |
+| `<!-- SCREENSHOT: history-list -->` | History list with entries and actions |
+| `<!-- SCREENSHOT: history-detail -->` | Entry detail: full transcript |
+| `<!-- SCREENSHOT: history-summary -->` | Same screen with AI summary / download / progress |
+| `<!-- SCREENSHOT: settings -->` | Settings: theme, beam search, version |
 
-## Limitations & Future Work
+Example markdown once files exist:
 
-* Model size can still be optimized further
-* Accuracy may degrade in noisy environments
-* Future work:
-
-  * Model quantization
-  * Multi-language expansion
-  * Speaker diarization
-  * Integration with LLM for downstream tasks
-  * Make it to a meeting record and summerize application, deploy a small LLM model (0.8b or 1b) model to summerize the meeting contents.
+```markdown
+![Home ASR](docs/screenshots/home-asr.png)
+```
 
 ---
 
-## Conclusion
+## Performance notes
 
-This project demonstrates the feasibility of deploying modern ASR architectures on edge devices using Kotlin. It highlights the potential of combining efficient deep learning models with practical software engineering to build scalable and user-friendly AI applications.
+Figures depend on device, model, and Vulkan availability. Treat any old marketing-style numbers as **non-binding** unless you re-benchmark on your hardware. ASR memory is dominated by the Zipformer / sherpa-ncnn bundle; the LLM adds a separate large resident set while loaded.
 
 ---
 
 ## References
-[sherpa_ncnn](https://github.com/k2-fsa/sherpa-ncnn)
+
+- [sherpa-ncnn](https://github.com/k2-fsa/sherpa-ncnn) — streaming ASR with ncnn  
+- [Sherpa / NCNN Android build](https://k2-fsa.github.io/sherpa/ncnn/android/build-sherpa-ncnn.html)  
+- [llama.cpp](https://github.com/ggerganov/llama.cpp)  
+- [Qwen2.5 GGUF](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF)
 
 ---
 
 ## License
 
-This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details.
-
----
+If the repository contains a `LICENSE` file, that file applies. Otherwise, follow the license terms chosen by the repository owner.
