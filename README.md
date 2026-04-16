@@ -85,7 +85,7 @@ LLM model will be downloaded within the application.
 
 ---
 
-## On-device LLM (summarization)
+## On-device LLM (summarization version: v4.0.0-beta)
 
 | Item | Detail |
 |------|--------|
