@@ -7,7 +7,7 @@ On-device **streaming speech recognition** for Android, powered by **Sherpa-NCNN
 ## Overview
 
 - **ASR**: Real-time speech-to-text runs entirely on the device (no cloud ASR). Audio is captured at 16 kHz mono, processed through a native JNI pipeline, and results are shown in a Jetpack Compose UI.
-- **Privacy**: All inference is performed locally. Microphone audio and ASR inference stay on-device. Transcripts can be stored in local history (Room).
+- **Privacy**: All inference is performed locally. Microphone audio and ASR inference stay on-device. Transcripts stored in local history (Room).
 - **Summaries (optional)**: From **Transcription history**, you can download a quantized LLM (~1 GB) once, then generate **streaming summaries** (key points, action items, etc.). Inference uses **llama.cpp** on the CPU; ASR and LLM are coordinated so they do not run at the same time to reduce memory pressure.
 
 ---
