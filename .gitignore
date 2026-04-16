@@ -21,3 +21,4 @@ build/
 core/media/src/main/assets
 sherpa-ncnn/
 domain/bin
+llama.cpp
