@@ -56,6 +56,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -72,6 +73,7 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -89,6 +91,14 @@ fun HistoryScreen(
     val llmState by viewModel.llmState.collectAsState()
     val summarizingEntryId by viewModel.summarizingEntryId.collectAsState()
     val streamingText by viewModel.streamingText.collectAsState()
+    val view = LocalView.current
+    DisposableEffect(summarizingEntryId != null) {
+        val keepOn = summarizingEntryId != null
+        view.keepScreenOn = keepOn
+        onDispose {
+            view.keepScreenOn = false
+        }
+    }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
