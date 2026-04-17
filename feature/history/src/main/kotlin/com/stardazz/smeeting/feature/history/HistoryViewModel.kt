@@ -81,7 +81,7 @@ class HistoryViewModel @Inject constructor(
         viewModelScope.launch {
             llmModelManager.downloadModel(context)
             if (llmModelManager.state.value is LlmModelState.Downloaded) {
-                llmModelManager.loadModel(context, nThreads = 4)
+                llmModelManager.loadModel(context, nThreads = LlmModelManager.DEFAULT_LOAD_THREADS)
             }
         }
     }

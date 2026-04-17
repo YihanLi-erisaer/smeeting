@@ -199,14 +199,44 @@ Java_com_stardazz_smeeting_core_llm_LlamaCppBridge_generateNative(
     }
     tokens.resize(n_tokens);
 
-    int n_ctx = n_tokens + max_tokens + 64;
-    if (n_ctx > 4096) n_ctx = 4096;
+    // Mobile KV budget (was effectively 4096 before; keep aligned with that constraint).
+    const int kMaxCtx = 4096;
+    const int reserve_tokens = max_tokens + 64;
+
+    int n_ctx = n_tokens + reserve_tokens;
+    if (n_ctx > kMaxCtx) {
+        n_ctx = kMaxCtx;
+    }
+
+    // Must leave room for generation; otherwise llama_decode / KV asserts.
+    if (n_tokens + reserve_tokens > n_ctx) {
+        int keep = n_ctx - reserve_tokens;
+        if (keep < 1) {
+            keep = 1;
+        }
+        if (n_tokens > keep) {
+            __android_log_print(ANDROID_LOG_WARN, TAG,
+                                "Prompt truncated from %d to %d tokens (n_ctx=%d, max_tokens=%d)",
+                                n_tokens, keep, n_ctx, max_tokens);
+            tokens.resize(static_cast<size_t>(keep));
+            n_tokens = keep;
+        }
+    }
 
     llama_context_params ctx_params = llama_context_default_params();
     ctx_params.n_ctx = n_ctx;
     ctx_params.n_threads = n_threads;
     ctx_params.n_threads_batch = n_threads;
-    ctx_params.n_batch = 512;
+    // Critical: a single llama_decode for the prompt cannot exceed n_batch. It was fixed at 512,
+    // so long prompts (many tokens) hit ggml_abort inside llama_context::decode.
+    int n_batch = n_tokens;
+    if (n_batch < 512) {
+        n_batch = 512;
+    }
+    if (n_batch > n_ctx) {
+        n_batch = n_ctx;
+    }
+    ctx_params.n_batch = n_batch;
     ctx_params.no_perf = true;
 
     llama_context* ctx = llama_init_from_model(g_model, ctx_params);

@@ -72,11 +72,11 @@ class LLMRepositoryImpl @Inject constructor(
             "You are a meeting transcription assistant. " +
             "Given a transcription, output a concise summary in the SAME LANGUAGE as the transcription. " +
             "Format:\n" +
-            "## Summary\n" +
-            "2-3 sentence overview.\n\n" +
-            "## Key Points\n" +
-            "- bullet points\n\n" +
-            "## Action Items\n" +
-            "- if any, otherwise write \"None\""
+            "Summary:\n" +
+            "2-3 SENTENCES ONLY!\n\n" +
+            "Key Points:\n" +
+            "- bullet points (ONLY ONE SENTENCE PER POINT!)\n\n" +
+            "Action Items:\n" +
+            "- if any, otherwise write (2-3 SENTENCES ONLY)\"None\""
     }
 }

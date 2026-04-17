@@ -17,7 +17,7 @@ class InitLlmModelTask(
     override suspend fun run() {
         if (manager.isModelDownloaded(app)) {
             StartupLogger.i("InitLlmModelTask: model present on disk, loading")
-            manager.loadModel(app, nThreads = 4)
+            manager.loadModel(app, nThreads = LlmModelManager.DEFAULT_LOAD_THREADS)
         } else {
             StartupLogger.i("InitLlmModelTask: model not yet downloaded, skipping auto-load")
         }

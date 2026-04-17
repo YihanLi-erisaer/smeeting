@@ -1,6 +1,7 @@
 package com.stardazz.smeeting.core.startup
 
 import android.content.Context
+import android.os.SystemClock
 import android.util.Log
 import com.stardazz.smeeting.core.llm.LlamaCppBridge
 import kotlinx.coroutines.Dispatchers
@@ -14,6 +15,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -32,6 +34,9 @@ class LlmModelManager @Inject constructor(
 ) {
     private val mutex = Mutex()
 
+    /** True while JNI is inside llama_model_load (mmap). Not held under [mutex] — see [loadInternal]. */
+    private val loadNativeInProgress = AtomicBoolean(false)
+
     private val _state = MutableStateFlow<LlmModelState>(LlmModelState.NotDownloaded)
     val state: StateFlow<LlmModelState> = _state.asStateFlow()
 
@@ -49,6 +54,10 @@ class LlmModelManager @Inject constructor(
     }
 
     private suspend fun downloadInternal(context: Context) {
+        if (loadNativeInProgress.get()) {
+            Log.w(TAG, "downloadModel skipped: LLM native load in progress")
+            return
+        }
         val file = getModelFile(context)
         if (file.exists() && file.length() > MIN_MODEL_SIZE) {
             _state.value = LlmModelState.Downloaded
@@ -113,27 +122,53 @@ class LlmModelManager @Inject constructor(
         }
     }
 
-    suspend fun loadModel(context: Context, nThreads: Int = 4) {
-        mutex.withLock {
-            loadInternal(context, nThreads)
-        }
+    suspend fun loadModel(context: Context, nThreads: Int = DEFAULT_LOAD_THREADS) {
+        loadInternal(context, nThreads)
     }
 
     private suspend fun loadInternal(context: Context, nThreads: Int) {
         val file = getModelFile(context)
-        if (!file.exists() || file.length() < MIN_MODEL_SIZE) {
-            _state.value = LlmModelState.NotDownloaded
-            return
+        mutex.withLock {
+            when (_state.value) {
+                LlmModelState.Ready -> {
+                    Log.d(TAG, "loadModel: already Ready, skipping")
+                    return
+                }
+                LlmModelState.Loading -> {
+                    Log.d(TAG, "loadModel: another load in progress, skipping duplicate call")
+                    return
+                }
+                else -> Unit
+            }
+            if (!file.exists() || file.length() < MIN_MODEL_SIZE) {
+                _state.value = LlmModelState.NotDownloaded
+                return
+            }
+            _state.value = LlmModelState.Loading
+            loadNativeInProgress.set(true)
         }
-
-        _state.value = LlmModelState.Loading
         try {
-            val success = bridge.loadModel(file.absolutePath, nThreads)
-            _state.value = if (success) LlmModelState.Ready
-            else LlmModelState.Error("Failed to load model")
+            val path = file.absolutePath
+            val t0 = SystemClock.elapsedRealtime()
+            Log.i(
+                TAG,
+                "LLM native load starting: $path (${file.length()} bytes), threads=$nThreads " +
+                    "(first load can take several minutes on low-memory devices)",
+            )
+            val success = bridge.loadModel(path, nThreads)
+            val elapsed = SystemClock.elapsedRealtime() - t0
+            Log.i(TAG, "LLM native load finished in ${elapsed}ms, success=$success")
+            mutex.withLock {
+                _state.value = if (success) LlmModelState.Ready
+                else LlmModelState.Error("Failed to load model")
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Load failed", e)
-            _state.value = LlmModelState.Error("Load failed: ${e.message}")
+            mutex.withLock {
+                _state.value = LlmModelState.Error("Load failed: ${e.message}")
+            }
+        } finally {
+            loadNativeInProgress.set(false)
         }
     }
 
@@ -155,6 +190,10 @@ class LlmModelManager @Inject constructor(
      */
     suspend fun deleteDownloadedModel(context: Context) {
         mutex.withLock {
+            if (loadNativeInProgress.get()) {
+                Log.w(TAG, "deleteDownloadedModel skipped: LLM load in progress")
+                return
+            }
             bridge.abort()
             bridge.releaseModel()
             val file = getModelFile(context)
@@ -175,5 +214,8 @@ class LlmModelManager @Inject constructor(
         private const val MODEL_URL =
             "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf"
         private const val MIN_MODEL_SIZE = 100_000_000L // 100MB sanity check (reject incomplete downloads)
+
+        /** Fewer threads lowers peak RAM during GGUF mmap; helps slow / low-memory phones. */
+        const val DEFAULT_LOAD_THREADS = 2
     }
 }
