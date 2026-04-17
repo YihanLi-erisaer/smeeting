@@ -8,7 +8,7 @@ On-device **streaming speech recognition** for Android, powered by **Sherpa-NCNN
 
 - **ASR**: Real-time speech-to-text runs entirely on the device (no cloud ASR). Audio is captured at 16 kHz mono, processed through a native JNI pipeline, and results are shown in a Jetpack Compose UI.
 - **Privacy**: All inference is performed locally. Microphone audio and ASR inference stay on-device. Transcripts stored in local history (Room).
-- **Summaries (optional)**: From **Transcription history**, you can download a quantized LLM (~1 GB) once, then generate **streaming summaries** (key points, action items, etc.). Inference uses **llama.cpp** on the CPU; ASR and LLM are coordinated so they do not run at the same time to reduce memory pressure.
+- **Summaries (optional)**: From **Transcription history**, you can download a quantized LLM (~400 MB) once, then generate **streaming summaries** (key points, action items, etc.). Inference uses **llama.cpp** on the CPU; ASR and LLM are coordinated so they do not run at the same time to reduce memory pressure.
 
 ---
 
@@ -19,7 +19,7 @@ On-device **streaming speech recognition** for Android, powered by **Sherpa-NCNN
 | Streaming ASR | Live partial and final transcripts with endpointing |
 | GPU / CPU | Tries Vulkan for the encoder when available, falls back to CPU |
 | History | Saved entries, copy/delete, detail view |
-| On-device LLM | Download **Qwen2.5-1.5B-Instruct** `Q4_K_M` GGUF; summarize history entries offline |
+| On-device LLM | Download **Qwen2.5-0.5B-Instruct** `Q4_K_M` GGUF; summarize history entries offline |
 | Settings | Theme, beam search, and related preferences |
 
 ---
@@ -90,9 +90,9 @@ LLM model will be downloaded within the application.
 | Item | Detail |
 |------|--------|
 | **Runtime** | **llama.cpp** (linked as `libllm_inference.so`) |
-| **Default model** | **Qwen2.5-1.5B-Instruct** GGUF **`q4_k_m`** (~1 GB on disk) |
-| **Storage** | Downloaded to app **internal storage**: `context.filesDir` / `qwen2.5-1.5b-instruct-q4_k_m.gguf` |
-| **Source** | Hugging Face: `Qwen/Qwen2.5-1.5B-Instruct-GGUF` (URL is defined in `LlmModelManager`) |
+| **Default model** | **Qwen2.5-0.5B-Instruct** GGUF **`q4_k_m`** (~400 MB on disk) |
+| **Storage** | Downloaded to app **internal storage**: `context.filesDir` / `qwen2.5-0.5b-instruct-q4_k_m.gguf` |
+| **Source** | Hugging Face: `Qwen/Qwen2.5-0.5B-Instruct-GGUF` (URL is defined in `LlmModelManager`) |
 
 First-time summarization: use the in-app **download** action in history detail; after the file is present, the model is loaded and **Summarize** becomes available.
 
@@ -157,7 +157,7 @@ Figures depend on device, model, and Vulkan availability. The performance data o
 - [sherpa-ncnn](https://github.com/k2-fsa/sherpa-ncnn) — streaming ASR with ncnn  
 - [Sherpa / NCNN Android build](https://k2-fsa.github.io/sherpa/ncnn/android/build-sherpa-ncnn.html)  
 - [llama.cpp](https://github.com/ggerganov/llama.cpp)  
-- [Qwen2.5 GGUF](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF)
+- [Qwen2.5 GGUF](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF)
 
 ---
 

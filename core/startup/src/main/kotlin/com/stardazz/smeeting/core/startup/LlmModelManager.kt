@@ -171,9 +171,9 @@ class LlmModelManager @Inject constructor(
 
     companion object {
         private const val TAG = "LlmModelManager"
-        private const val MODEL_FILENAME = "qwen2.5-1.5b-instruct-q4_k_m.gguf"
+        private const val MODEL_FILENAME = "qwen2.5-0.5b-instruct-q4_k_m.gguf"
         private const val MODEL_URL =
-            "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf"
-        private const val MIN_MODEL_SIZE = 100_000_000L // 100MB sanity check
+            "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf"
+        private const val MIN_MODEL_SIZE = 100_000_000L // 100MB sanity check (reject incomplete downloads)
     }
 }

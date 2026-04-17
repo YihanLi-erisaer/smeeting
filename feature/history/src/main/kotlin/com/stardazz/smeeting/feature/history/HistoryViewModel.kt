@@ -9,12 +9,9 @@ import com.stardazz.smeeting.domain.usecase.DeleteTranscriptionHistoryEntryUseCa
 import com.stardazz.smeeting.domain.usecase.ObserveTranscriptionHistoryUseCase
 import com.stardazz.smeeting.domain.usecase.SummarizeTranscriptionUseCase
 import com.stardazz.smeeting.domain.usecase.UpdateHistorySummaryUseCase
-import android.content.Context
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -24,7 +21,6 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class HistoryViewModel @Inject constructor(
-    @ApplicationContext private val appContext: Context,
     observeTranscriptionHistoryUseCase: ObserveTranscriptionHistoryUseCase,
     private val deleteTranscriptionHistoryEntryUseCase: DeleteTranscriptionHistoryEntryUseCase,
     private val summarizeTranscriptionUseCase: SummarizeTranscriptionUseCase,
@@ -71,9 +67,6 @@ class HistoryViewModel @Inject constructor(
                 }
             } finally {
                 _summarizingEntryId.value = null
-                if (isActive) {
-                    llmModelManager.unloadModel(appContext)
-                }
             }
         }
     }
