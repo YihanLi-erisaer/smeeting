@@ -137,9 +137,36 @@ class LlmModelManager @Inject constructor(
         }
     }
 
-    fun releaseModel() {
-        bridge.releaseModel()
-        _state.value = LlmModelState.Downloaded
+    /**
+     * Aborts any ongoing generation, releases native weights, and keeps the GGUF on disk if present.
+     * State becomes [LlmModelState.Downloaded] or [LlmModelState.NotDownloaded] accordingly.
+     */
+    suspend fun unloadModel(context: Context) {
+        mutex.withLock {
+            bridge.abort()
+            bridge.releaseModel()
+            _state.value = if (isModelDownloaded(context)) LlmModelState.Downloaded
+            else LlmModelState.NotDownloaded
+        }
+    }
+
+    /**
+     * Unloads the model and deletes the downloaded GGUF (and incomplete `.tmp`) from app storage.
+     */
+    suspend fun deleteDownloadedModel(context: Context) {
+        mutex.withLock {
+            bridge.abort()
+            bridge.releaseModel()
+            val file = getModelFile(context)
+            val tmpFile = File(file.parentFile, "${MODEL_FILENAME}.tmp")
+            try {
+                if (tmpFile.exists()) tmpFile.delete()
+                if (file.exists()) file.delete()
+            } catch (e: Exception) {
+                Log.e(TAG, "Delete model files failed", e)
+            }
+            _state.value = LlmModelState.NotDownloaded
+        }
     }
 
     companion object {

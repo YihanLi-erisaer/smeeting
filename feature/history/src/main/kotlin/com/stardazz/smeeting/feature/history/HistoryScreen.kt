@@ -196,6 +196,7 @@ fun HistoryScreen(
                     onSummarize = { viewModel.summarize(entry) },
                     onCancelSummarize = { viewModel.cancelSummarize() },
                     onDownloadModel = { viewModel.downloadLlmModel(context) },
+                    onDeleteModelFiles = { viewModel.deleteLlmModelFiles(context) },
                     onCopySummary = { text ->
                         copyToClipboard(context, text)
                         scope.launch { snackbarHostState.showSnackbar(copiedMessage) }
@@ -402,9 +403,11 @@ private fun HistoryEntryDetail(
     onSummarize: () -> Unit,
     onCancelSummarize: () -> Unit,
     onDownloadModel: () -> Unit,
+    onDeleteModelFiles: () -> Unit,
     onCopySummary: (String) -> Unit,
 ) {
     val scrollState = rememberScrollState()
+    var showDeleteModelDialog by remember { mutableStateOf(false) }
     val displaySummary = when {
         isSummarizing && streamingText.isNotEmpty() -> streamingText
         !item.summary.isNullOrEmpty() -> item.summary
@@ -472,11 +475,38 @@ private fun HistoryEntryDetail(
             onSummarize = onSummarize,
             onCancelSummarize = onCancelSummarize,
             onDownloadModel = onDownloadModel,
+            onRequestDeleteModel = { showDeleteModelDialog = true },
             onCopySummary = {
                 val text = displaySummary
                 if (!text.isNullOrEmpty()) onCopySummary(text)
             },
         )
+
+        if (showDeleteModelDialog) {
+            AlertDialog(
+                onDismissRequest = { showDeleteModelDialog = false },
+                title = { Text(stringResource(R.string.summary_delete_model_title)) },
+                text = { Text(stringResource(R.string.summary_delete_model_message)) },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showDeleteModelDialog = false
+                            onDeleteModelFiles()
+                        },
+                    ) {
+                        Text(
+                            stringResource(R.string.summary_delete_model_confirm),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteModelDialog = false }) {
+                        Text(stringResource(R.string.history_delete_cancel))
+                    }
+                },
+            )
+        }
     }
 }
 
@@ -488,8 +518,13 @@ private fun SummarizeActionBar(
     onSummarize: () -> Unit,
     onCancelSummarize: () -> Unit,
     onDownloadModel: () -> Unit,
+    onRequestDeleteModel: () -> Unit,
     onCopySummary: () -> Unit,
 ) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -552,6 +587,18 @@ private fun SummarizeActionBar(
                 }
             }
         }
+    }
+    if (!isSummarizing && llmState is LlmModelState.Ready) {
+        TextButton(
+            onClick = onRequestDeleteModel,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(
+                stringResource(R.string.summary_delete_model),
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+    }
     }
 }
 

@@ -24,4 +24,8 @@
     <string name="summary_download_model">Download AI Model</string>
     <string name="summary_downloading">Downloading model… %1$d%%</string>
     <string name="summary_loading_model">Loading AI model…</string>
+    <string name="summary_delete_model">Delete model files</string>
+    <string name="summary_delete_model_title">Delete downloaded model?</string>
+    <string name="summary_delete_model_message">This frees disk space. You can download the model again later.</string>
+    <string name="summary_delete_model_confirm">Delete</string>
 </resources>

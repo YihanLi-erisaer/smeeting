@@ -24,4 +24,8 @@
     <string name="summary_download_model">下载 AI 模型</string>
     <string name="summary_downloading">正在下载模型… %1$d%%</string>
     <string name="summary_loading_model">正在加载 AI 模型…</string>
+    <string name="summary_delete_model">删除本地模型</string>
+    <string name="summary_delete_model_title">删除已下载的模型？</string>
+    <string name="summary_delete_model_message">将释放存储空间，之后可随时重新下载。</string>
+    <string name="summary_delete_model_confirm">删除</string>
 </resources>
