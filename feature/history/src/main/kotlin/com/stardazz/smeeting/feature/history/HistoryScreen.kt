@@ -108,6 +108,7 @@ fun HistoryScreen(
     var deleteFromDetail by remember { mutableStateOf(false) }
     var selectedEntryId by rememberSaveable { mutableStateOf<String?>(null) }
     var detailMenuExpanded by remember { mutableStateOf(false) }
+    var showDeleteLlmModelDialog by remember { mutableStateOf(false) }
     var expandBias by remember { mutableFloatStateOf(0f) }
     var contentCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
     val listState = rememberLazyListState()
@@ -172,6 +173,18 @@ fun HistoryScreen(
                                         deleteFromDetail = true
                                     },
                                 )
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = stringResource(R.string.summary_delete_model),
+                                            color = MaterialTheme.colorScheme.error,
+                                        )
+                                    },
+                                    onClick = {
+                                        detailMenuExpanded = false
+                                        showDeleteLlmModelDialog = true
+                                    },
+                                )
                             }
                         }
                     }
@@ -206,7 +219,6 @@ fun HistoryScreen(
                     onSummarize = { viewModel.summarize(entry) },
                     onCancelSummarize = { viewModel.cancelSummarize() },
                     onDownloadModel = { viewModel.downloadLlmModel(context) },
-                    onDeleteModelFiles = { viewModel.deleteLlmModelFiles(context) },
                     onCopySummary = { text ->
                         copyToClipboard(context, text)
                         scope.launch { snackbarHostState.showSnackbar(copiedMessage) }
@@ -298,6 +310,32 @@ fun HistoryScreen(
             },
             dismissButton = {
                 TextButton(onClick = { pendingDeleteId = null }) {
+                    Text(stringResource(R.string.history_delete_cancel))
+                }
+            },
+        )
+    }
+
+    if (showDeleteLlmModelDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteLlmModelDialog = false },
+            title = { Text(stringResource(R.string.summary_delete_model_title)) },
+            text = { Text(stringResource(R.string.summary_delete_model_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteLlmModelDialog = false
+                        viewModel.deleteLlmModelFiles(context)
+                    },
+                ) {
+                    Text(
+                        stringResource(R.string.summary_delete_model_confirm),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteLlmModelDialog = false }) {
                     Text(stringResource(R.string.history_delete_cancel))
                 }
             },
@@ -413,11 +451,9 @@ private fun HistoryEntryDetail(
     onSummarize: () -> Unit,
     onCancelSummarize: () -> Unit,
     onDownloadModel: () -> Unit,
-    onDeleteModelFiles: () -> Unit,
     onCopySummary: (String) -> Unit,
 ) {
     val scrollState = rememberScrollState()
-    var showDeleteModelDialog by remember { mutableStateOf(false) }
     val generatingLabel = stringResource(R.string.summary_generating)
     // While summarizing, do not fall back to persisted item.summary — otherwise Re-summarize
     // looks unchanged until the first streamed token arrives.
@@ -489,38 +525,11 @@ private fun HistoryEntryDetail(
             onSummarize = onSummarize,
             onCancelSummarize = onCancelSummarize,
             onDownloadModel = onDownloadModel,
-            onRequestDeleteModel = { showDeleteModelDialog = true },
             onCopySummary = {
                 val text = displaySummary
                 if (!text.isNullOrEmpty()) onCopySummary(text)
             },
         )
-
-        if (showDeleteModelDialog) {
-            AlertDialog(
-                onDismissRequest = { showDeleteModelDialog = false },
-                title = { Text(stringResource(R.string.summary_delete_model_title)) },
-                text = { Text(stringResource(R.string.summary_delete_model_message)) },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            showDeleteModelDialog = false
-                            onDeleteModelFiles()
-                        },
-                    ) {
-                        Text(
-                            stringResource(R.string.summary_delete_model_confirm),
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showDeleteModelDialog = false }) {
-                        Text(stringResource(R.string.history_delete_cancel))
-                    }
-                },
-            )
-        }
     }
 }
 
@@ -532,7 +541,6 @@ private fun SummarizeActionBar(
     onSummarize: () -> Unit,
     onCancelSummarize: () -> Unit,
     onDownloadModel: () -> Unit,
-    onRequestDeleteModel: () -> Unit,
     onCopySummary: () -> Unit,
 ) {
     Column(
@@ -600,17 +608,6 @@ private fun SummarizeActionBar(
                     Text(stringResource(R.string.summary_download_model))
                 }
             }
-        }
-    }
-    if (!isSummarizing && llmState is LlmModelState.Ready) {
-        TextButton(
-            onClick = onRequestDeleteModel,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text(
-                stringResource(R.string.summary_delete_model),
-                color = MaterialTheme.colorScheme.error,
-            )
         }
     }
     }

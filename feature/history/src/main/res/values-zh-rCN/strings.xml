@@ -6,7 +6,7 @@
     <string name="beam_search_subtitle">默认贪心搜索。打开时：修改波束搜索，通常较慢准确度较高。</string>
     <string name="app_version">应用版本</string>
     <string name="history_copy">复制</string>
-    <string name="history_delete">删除</string>
+    <string name="history_delete">删除记录</string>
     <string name="history_delete_confirm_title">删除记录</string>
     <string name="history_delete_confirm_message">确定要删除这条识别记录吗？此操作无法撤销。</string>
     <string name="history_delete_confirm">删除</string>
