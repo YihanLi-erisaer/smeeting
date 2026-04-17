@@ -6,5 +6,8 @@ import kotlinx.coroutines.flow.StateFlow
 interface LLMRepository {
     val isModelReady: StateFlow<Boolean>
     fun summarize(text: String): Flow<String>
-    suspend fun abortGeneration()
+    fun abortGeneration()
+
+    /** Suspends until no native generation is in progress (e.g. after [abortGeneration]). */
+    suspend fun awaitGenerationIdle()
 }

@@ -19,7 +19,11 @@ class LlamaCppBridge @Inject constructor() {
     private val _isLoaded = MutableStateFlow(false)
     val isLoaded: StateFlow<Boolean> = _isLoaded.asStateFlow()
 
-    private val isGenerating = AtomicBoolean(false)
+    private val isGeneratingAtomic = AtomicBoolean(false)
+
+    /** True while [generateNative] is running; used to await cancel completion. */
+    private val _isGeneratingFlow = MutableStateFlow(false)
+    val isGenerating: StateFlow<Boolean> = _isGeneratingFlow.asStateFlow()
 
     private val _tokenFlow = MutableSharedFlow<String>(
         extraBufferCapacity = 256,
@@ -68,16 +72,18 @@ class LlamaCppBridge @Inject constructor() {
      */
     suspend fun generate(prompt: String, maxTokens: Int = 512, nThreads: Int = 4): String {
         if (!_isLoaded.value) return ""
-        if (!isGenerating.compareAndSet(false, true)) {
+        if (!isGeneratingAtomic.compareAndSet(false, true)) {
             Log.w(TAG, "Generation already in progress")
             return ""
         }
+        _isGeneratingFlow.value = true
         return try {
             withContext(Dispatchers.IO) {
                 generateNative(prompt, maxTokens, nThreads)
             }
         } finally {
-            isGenerating.set(false)
+            isGeneratingAtomic.set(false)
+            _isGeneratingFlow.value = false
         }
     }
 

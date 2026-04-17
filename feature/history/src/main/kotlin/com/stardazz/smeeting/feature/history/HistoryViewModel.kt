@@ -8,10 +8,12 @@ import com.stardazz.smeeting.domain.model.TranscriptionHistoryEntry
 import com.stardazz.smeeting.domain.usecase.DeleteTranscriptionHistoryEntryUseCase
 import com.stardazz.smeeting.domain.usecase.ObserveTranscriptionHistoryUseCase
 import com.stardazz.smeeting.domain.usecase.SummarizeTranscriptionUseCase
+import com.stardazz.smeeting.domain.repository.LLMRepository
 import com.stardazz.smeeting.domain.usecase.UpdateHistorySummaryUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -25,6 +27,7 @@ class HistoryViewModel @Inject constructor(
     private val deleteTranscriptionHistoryEntryUseCase: DeleteTranscriptionHistoryEntryUseCase,
     private val summarizeTranscriptionUseCase: SummarizeTranscriptionUseCase,
     private val updateHistorySummaryUseCase: UpdateHistorySummaryUseCase,
+    private val llmRepository: LLMRepository,
     private val llmModelManager: LlmModelManager,
 ) : ViewModel() {
 
@@ -52,12 +55,22 @@ class HistoryViewModel @Inject constructor(
     }
 
     fun summarize(entry: TranscriptionHistoryEntry) {
-        if (summarizeJob?.isActive == true) return
-        _summarizingEntryId.value = entry.id
-        _streamingText.value = ""
+        // Replace any in-flight run: cancel alone leaves Job.isCompleted false while JNI still runs,
+        // which blocked new attempts; abort + awaitGenerationIdle() waits for native to release.
+        summarizeJob?.cancel()
+        llmRepository.abortGeneration()
 
         summarizeJob = viewModelScope.launch {
+            val myJob = coroutineContext[Job]!!
             try {
+                // Show generating UI before await: after Cancel, native may still be finishing; await
+                // can take noticeable time and looked like "no response" when this ran after await.
+                _summarizingEntryId.value = entry.id
+                _streamingText.value = ""
+
+                llmRepository.awaitGenerationIdle()
+                if (!isActive) return@launch
+
                 summarizeTranscriptionUseCase(entry.text).collect { accumulated ->
                     _streamingText.value = accumulated
                 }
@@ -67,11 +80,17 @@ class HistoryViewModel @Inject constructor(
                 }
             } finally {
                 _summarizingEntryId.value = null
+                // Only clear if this job still owns summarizeJob. Otherwise a finished job's finally
+                // can run after a newer summarize() replaced the reference and would wipe the new Job.
+                if (summarizeJob === myJob) {
+                    summarizeJob = null
+                }
             }
         }
     }
 
     fun cancelSummarize() {
+        llmRepository.abortGeneration()
         summarizeJob?.cancel()
         _summarizingEntryId.value = null
         _streamingText.value = ""

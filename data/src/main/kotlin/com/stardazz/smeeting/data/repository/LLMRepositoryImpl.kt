@@ -8,6 +8,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -49,8 +50,12 @@ class LLMRepositoryImpl @Inject constructor(
         }
     }.flowOn(Dispatchers.IO)
 
-    override suspend fun abortGeneration() {
+    override fun abortGeneration() {
         bridge.abort()
+    }
+
+    override suspend fun awaitGenerationIdle() {
+        bridge.isGenerating.first { !it }
     }
 
     private fun buildPrompt(transcriptionText: String): String {

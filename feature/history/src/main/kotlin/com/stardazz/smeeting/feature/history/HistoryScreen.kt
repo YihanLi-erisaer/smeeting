@@ -418,8 +418,12 @@ private fun HistoryEntryDetail(
 ) {
     val scrollState = rememberScrollState()
     var showDeleteModelDialog by remember { mutableStateOf(false) }
+    val generatingLabel = stringResource(R.string.summary_generating)
+    // While summarizing, do not fall back to persisted item.summary — otherwise Re-summarize
+    // looks unchanged until the first streamed token arrives.
     val displaySummary = when {
         isSummarizing && streamingText.isNotEmpty() -> streamingText
+        isSummarizing -> generatingLabel
         !item.summary.isNullOrEmpty() -> item.summary
         else -> null
     }
