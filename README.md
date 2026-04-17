@@ -1,4 +1,4 @@
-# Kotlin ASR with NCNN
+# smeeting
 
 On-device **streaming speech recognition** for Android, powered by **Sherpa-NCNN** and **ncnn**, plus optional **on-device text summarization** of saved transcripts using **llama.cpp** and a small **Qwen2.5** GGUF model.
 
@@ -7,7 +7,7 @@ On-device **streaming speech recognition** for Android, powered by **Sherpa-NCNN
 ## Overview
 
 - **ASR**: Real-time speech-to-text runs entirely on the device (no cloud ASR). Audio is captured at 16 kHz mono, processed through a native JNI pipeline, and results are shown in a Jetpack Compose UI.
-- **Privacy**: Microphone audio and ASR inference stay on-device. Transcripts can be stored in local history (Room).
+- **Privacy**: All inference is performed locally. Microphone audio and ASR inference stay on-device. Transcripts stored in local history (Room).
 - **Summaries (optional)**: From **Transcription history**, you can download a quantized LLM (~1 GB) once, then generate **streaming summaries** (key points, action items, etc.). Inference uses **llama.cpp** on the CPU; ASR and LLM are coordinated so they do not run at the same time to reduce memory pressure.
 
 ---
@@ -51,16 +51,20 @@ Native ASR follows the upstream **sherpa-ncnn** / **ncnn** integration pattern (
 - **Android Studio** with **Android SDK** and **NDK** (project uses native CMake for `:core:media` and `:core:llm`)
 - **JDK 17** (toolchain aligned with Gradle / Kotlin)
 - **Device / ABI**: `arm64-v8a` and `armeabi-v7a` (see `ndk { abiFilters … }` in Gradle)
-- **Permissions**: `RECORD_AUDIO`; `INTERNET` only for **downloading** the LLM GGUF (ASR itself does not require network)
+- **Permissions**: `RECORD_AUDIO`; `INTERNET` only for **downloading** the LLM GGUF (ASR and LLM inference does not require network)
 
 ---
 
 ## Clone and submodules
 
 ```bash
-git clone <YOUR_REPO_URL>
-cd Kotlin-ASR-with-ncnn
+git clone https://github.com/YihanLi-erisaer/smeeting.git
+cd smeeting
 git submodule update --init --recursive
+git clone https://github.com/k2-fsa/sherpa-ncnn.git
+# more steps to set up for android see https://k2-fsa.github.io/sherpa/ncnn/android/build-sherpa-ncnn.html#download-sherpa-ncnn
+cd core\llm\src\main\cpp
+git clone https://github.com/ggml-org/llama.cpp.git
 ```
 
 Initialize at least:
@@ -75,9 +79,13 @@ Sherpa-ncnn / ncnn native libraries and ASR model assets for Android are **not**
 
 Streaming ASR expects model files under Android **assets** (names such as `encoder.param`, `encoder.bin`, `decoder.*`, `joiner.*`, `tokens.txt`). Paths are wired in startup / native init — keep filenames consistent with `AsrModelManager` when you swap models.
 
+## LLM model
+
+LLM model will be downloaded within the application.
+
 ---
 
-## On-device LLM (summarization)
+## On-device LLM (summarization version: v4.0.0-beta)
 
 | Item | Detail |
 |------|--------|
@@ -108,29 +116,39 @@ If CMake fails for **`armeabi-v7a`**, the project disables **GGML LLAMAFILE** fo
 
 ---
 
-## User interface (screenshots)
+## User interface (screenshots version: v4.0.0-beta)
+<img width="317" height="686" alt="image" src="https://github.com/user-attachments/assets/8b7ec787-c421-4074-bf2d-ea4b1521b82b" />
+<img width="316" height="684" alt="image" src="https://github.com/user-attachments/assets/37fb8a4d-45c6-4fb0-b75b-900e6ee88b23" />
+<img width="314" height="685" alt="image" src="https://github.com/user-attachments/assets/dd134a00-eb32-40d0-aee8-c7f90fa9d4da" />
+<img width="317" height="685" alt="image" src="https://github.com/user-attachments/assets/6e25f5ba-0016-4c17-8c78-49a6a8253e30" />
+<img width="316" height="681" alt="image" src="https://github.com/user-attachments/assets/cbabcd98-39e0-4522-ae85-94b602e807b7" />
+<img width="317" height="686" alt="image" src="https://github.com/user-attachments/assets/592b7108-b487-4093-b8a5-7c27f55d8adb" />
+<img width="317" height="685" alt="image" src="https://github.com/user-attachments/assets/e28b4b89-bf95-4fab-a51b-9111835007d9" />
 
-Screenshots are **not** embedded in this README. Add your own under e.g. `docs/screenshots/` and reference them here.
-
-| Placeholder | Suggested capture |
-|-------------|-------------------|
-| `<!-- SCREENSHOT: home-asr -->` | Main screen: recording / streaming transcript, backend indicator |
-| `<!-- SCREENSHOT: history-list -->` | History list with entries and actions |
-| `<!-- SCREENSHOT: history-detail -->` | Entry detail: full transcript |
-| `<!-- SCREENSHOT: history-summary -->` | Same screen with AI summary / download / progress |
-| `<!-- SCREENSHOT: settings -->` | Settings: theme, beam search, version |
-
-Example markdown once files exist:
-
-```markdown
-![Home ASR](docs/screenshots/home-asr.png)
-```
 
 ---
 
 ## Performance notes
 
-Figures depend on device, model, and Vulkan availability. Treat any old marketing-style numbers as **non-binding** unless you re-benchmark on your hardware. ASR memory is dominated by the Zipformer / sherpa-ncnn bundle; the LLM adds a separate large resident set while loaded.
+Figures depend on device, model, and Vulkan availability. The performance data only is a reference on the Helio G99 chip.
+
+**performance on a android device Helio G99 (CPU) processor using armv8 libs only running ASR model**
+| Metric       | Value   |
+| ------------ | ------- |
+| Memory Usage | ~250 MB  |
+| Latency      | ~120 ms  |
+| Chinese Accuracy (in chaos environment)     | ~89%  |
+| Chinese Accuracy (in quiet environment)     | ~95%  |
+| English Accuracy (in chaos environment)     | ~92%  |
+| English Accuracy (in quiet environment)     | ~97%  |
+
+**performance on a android device Helio G99 (CPU) processor running LLM model**
+| Metric       | Value   |
+| ------------ | ------- |
+| Memory Usage | ~1.4 GB  |
+| Quantization | 4-bit Integer |
+| Throughput | ~1.0 token/s |
+| Latency (Average Summary)      | ~60 seconds  |
 
 ---
 
@@ -145,4 +163,4 @@ Figures depend on device, model, and Vulkan availability. Treat any old marketin
 
 ## License
 
-If the repository contains a `LICENSE` file, that file applies. Otherwise, follow the license terms chosen by the repository owner.
+This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details.
