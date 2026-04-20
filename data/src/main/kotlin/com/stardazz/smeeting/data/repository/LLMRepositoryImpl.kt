@@ -76,24 +76,59 @@ class LLMRepositoryImpl @Inject constructor(
         } else {
             transcriptionText
         }
-        return "<|im_start|>system\n$SYSTEM_PROMPT<|im_end|>\n<|im_start|>user\n$trimmed<|im_end|>\n<|im_start|>assistant\n"
+        val promptLanguage = detectPromptLanguage(trimmed)
+        val systemPrompt = buildSystemPrompt(promptLanguage)
+        return "<|im_start|>system\n$systemPrompt<|im_end|>\n<|im_start|>user\n$trimmed<|im_end|>\n<|im_start|>assistant\n"
     }
+
+    private fun detectPromptLanguage(text: String): PromptLanguage {
+        val hanCharCount = text.count { it.code in HAN_UNICODE_START..HAN_UNICODE_END }
+        return if (hanCharCount >= MIN_HAN_CHAR_FOR_CHINESE) {
+            PromptLanguage.CHINESE
+        } else {
+            PromptLanguage.ENGLISH
+        }
+    }
+
+    private fun buildSystemPrompt(language: PromptLanguage): String =
+        when (language) {
+            PromptLanguage.CHINESE -> CHINESE_SYSTEM_PROMPT
+            PromptLanguage.ENGLISH -> ENGLISH_SYSTEM_PROMPT
+        }
 
     companion object {
         private const val TAG = "LLMRepositoryImpl"
         private const val MAX_TOKENS = 512
         private const val N_THREADS = 4
         private const val MAX_INPUT_CHARS = 4096
+        private const val HAN_UNICODE_START = 0x4E00
+        private const val HAN_UNICODE_END = 0x9FFF
+        private const val MIN_HAN_CHAR_FOR_CHINESE = 4
 
-        private const val SYSTEM_PROMPT =
+        private const val ENGLISH_SYSTEM_PROMPT =
             "You are a meeting transcription assistant. " +
-            "Given a transcription, output a concise summary in the SAME LANGUAGE as the transcription. " +
+            "Given a transcription, output a concise summary in English. " +
             "Format:\n" +
             "Summary:\n" +
-            "2-3 SENTENCES ONLY!\n\n" +
+            "- summary in 2-3 SENTENCES ONLY!\n\n" +
             "Key Points:\n" +
             "- bullet points ONLY ONE SENTENCE PER POINT! \n\n" +
             "Action Items:\n" +
             "- if any write 2-3 SENTENCES ONLY, otherwise write \"None\""
+
+        private const val CHINESE_SYSTEM_PROMPT =
+            "你是会议转写助手。输入是中文转写文本。必须全程仅使用简体中文输出，不得使用英文。 " +
+            "输出格式：\n" +
+            "摘要：\n" +
+            "- 摘要仅 2-3 句话。\n\n" +
+            "关键点：\n" +
+            "- 项目符号列表，每点仅 1 句话。\n\n" +
+            "行动项：\n" +
+            "- 如有行动项，写 2-3 句话；如无则写“无”。"
+    }
+
+    private enum class PromptLanguage {
+        CHINESE,
+        ENGLISH,
     }
 }
