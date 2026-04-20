@@ -26,15 +26,22 @@ object LlmNcnnDevicePolicy {
     fun preferNcnnVulkan(): Boolean {
         if (!ENABLE_LLM_VULKAN) {
             Log.i(TAG, "ncnn LLM using CPU (ENABLE_LLM_VULKAN=false; Vulkan pipelines often fail on Android)")
+            Log.i(TAG, "LLM inference (policy): CPU")
             return false
         }
         val renderer = glRendererString() ?: run {
             Log.i(TAG, "GL_RENDERER unavailable, using CPU for ncnn LLM")
+            Log.i(TAG, "LLM inference (policy): CPU")
             return false
         }
         Log.i(TAG, "GL_RENDERER=$renderer")
         val r = renderer.lowercase()
-        return r.contains("adreno") || r.contains("mali")
+        val useVk = r.contains("adreno") || r.contains("mali")
+        Log.i(
+            TAG,
+            "LLM inference (policy): ${if (useVk) "GPU (Vulkan)" else "CPU"} (Adreno/Mali only)",
+        )
+        return useVk
     }
 
     private fun glRendererString(): String? {

@@ -58,7 +58,11 @@ class NcnnLlmBridge @Inject constructor() {
             val success = loadModelNative(modelPath, useVulkan, nThreads, vulkanDeviceIndex)
             _isLoaded.value = success
             if (success) {
-                Log.i(TAG, "Model loaded from $modelPath (vulkan=$useVulkan)")
+                Log.i(
+                    TAG,
+                    "Model loaded from $modelPath; requestedVulkan=$useVulkan; " +
+                        "LLM inference (actual)=${inferenceBackendNative()}",
+                )
             } else {
                 Log.e(TAG, "Failed to load model from $modelPath")
             }
@@ -104,4 +108,7 @@ class NcnnLlmBridge @Inject constructor() {
     private external fun abortNative()
     private external fun generateNative(prompt: String, maxTokens: Int, nThreads: Int): String
     private external fun isModelLoadedNative(): Boolean
+
+    /** CPU / GPU (Vulkan) as configured after the last successful [loadModel]. */
+    private external fun inferenceBackendNative(): String
 }

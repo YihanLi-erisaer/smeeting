@@ -20,6 +20,8 @@ static std::mutex g_mutex;
 
 #if NCNN_VULKAN
 static std::atomic<bool> g_gpu_instance_created{false};
+/** Set when [loadModelNative] succeeds; true means ncnn_llm uses Vulkan compute. */
+static bool g_llm_inference_is_vulkan = false;
 #endif
 
 static size_t utf8_valid_prefix_len(const char* data, size_t len) {
@@ -154,6 +156,9 @@ Java_com_stardazz_smeeting_core_llm_NcnnLlmBridge_loadModelNative(
             use_vk,
             static_cast<int>(n_threads),
             static_cast<int>(vulkan_device));
+#if NCNN_VULKAN
+        g_llm_inference_is_vulkan = use_vk;
+#endif
     } catch (const std::exception& e) {
         __android_log_print(ANDROID_LOG_ERROR, TAG, "ncnn_llm load failed: %s", e.what());
         env->ReleaseStringUTFChars(model_path, path);
@@ -164,6 +169,12 @@ Java_com_stardazz_smeeting_core_llm_NcnnLlmBridge_loadModelNative(
         return JNI_FALSE;
     }
     env->ReleaseStringUTFChars(model_path, path);
+#if NCNN_VULKAN
+    __android_log_print(ANDROID_LOG_INFO, TAG, "LLM inference backend: %s",
+                        g_llm_inference_is_vulkan ? "GPU (Vulkan)" : "CPU");
+#else
+    __android_log_print(ANDROID_LOG_INFO, TAG, "LLM inference backend: CPU (ncnn built without Vulkan)");
+#endif
     return JNI_TRUE;
 }
 
@@ -172,6 +183,9 @@ Java_com_stardazz_smeeting_core_llm_NcnnLlmBridge_releaseModelNative(JNIEnv* env
     g_ncnn_llm_abort = true;
     std::lock_guard<std::mutex> lock(g_mutex);
     g_model.reset();
+#if NCNN_VULKAN
+    g_llm_inference_is_vulkan = false;
+#endif
     __android_log_print(ANDROID_LOG_INFO, TAG, "ncnn_llm model released");
 }
 
@@ -189,6 +203,13 @@ Java_com_stardazz_smeeting_core_llm_NcnnLlmBridge_generateNative(
     if (!g_model) {
         return env->NewStringUTF("");
     }
+
+#if NCNN_VULKAN
+    __android_log_print(ANDROID_LOG_INFO, TAG, "LLM generate: backend=%s",
+                        g_llm_inference_is_vulkan ? "GPU (Vulkan)" : "CPU");
+#else
+    __android_log_print(ANDROID_LOG_INFO, TAG, "LLM generate: backend=CPU");
+#endif
 
     const char* prompt_cstr = env->GetStringUTFChars(prompt_str, nullptr);
     std::string prompt(prompt_cstr);
@@ -247,6 +268,19 @@ JNIEXPORT jboolean JNICALL
 Java_com_stardazz_smeeting_core_llm_NcnnLlmBridge_isModelLoadedNative(JNIEnv* env, jobject thiz) {
     std::lock_guard<std::mutex> lock(g_mutex);
     return g_model != nullptr ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_stardazz_smeeting_core_llm_NcnnLlmBridge_inferenceBackendNative(JNIEnv* env, jobject thiz) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+    if (!g_model) {
+        return env->NewStringUTF("not_loaded");
+    }
+#if NCNN_VULKAN
+    return env->NewStringUTF(g_llm_inference_is_vulkan ? "GPU (Vulkan)" : "CPU");
+#else
+    return env->NewStringUTF("CPU");
+#endif
 }
 
 } // extern "C"

@@ -206,7 +206,7 @@ class LlmModelManager @Inject constructor(
             val t0 = SystemClock.elapsedRealtime()
             Log.i(
                 TAG,
-                "LLM ncnn load starting: $path threads=$nThreads vulkan=$useVulkan " +
+                "LLM ncnn load starting: $path threads=$nThreads requestedVulkan=$useVulkan " +
                     "(first load can take several minutes on low-memory devices)",
             )
             val success = bridge.loadModel(path, useVulkan, nThreads, vulkanDeviceIndex = 0)
