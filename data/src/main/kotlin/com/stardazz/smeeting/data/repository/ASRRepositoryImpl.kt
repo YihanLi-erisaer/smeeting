@@ -314,11 +314,27 @@ class ASRRepositoryImpl @Inject constructor(
                 currentUtterance = ""
                 accumulatedText.toString()
             } else {
-                // New utterance: new text doesn't extend current (model reset after endpoint)
-                val isNewUtterance = currentUtterance.isNotEmpty() &&
-                    text != currentUtterance &&
-                    !text.startsWith(currentUtterance) &&
-                    !currentUtterance.startsWith(text)
+                // New utterance: new text doesn't extend current (model reset after endpoint).
+                // If native skipped the endpoint callback, currentUtterance may still hold the
+                // previous sentence while the new stream starts with a *prefix* of that string
+                // (e.g. new "hello" vs old "hello world") — treat as a new segment and flush.
+                val prefixShorteningLikelyNewUtterance =
+                    currentUtterance.isNotEmpty() &&
+                        text.isNotEmpty() &&
+                        text.length < currentUtterance.length &&
+                        currentUtterance.startsWith(text) &&
+                        text != currentUtterance &&
+                        (currentUtterance.length - text.length) >= 4
+                val isNewUtterance =
+                    currentUtterance.isNotEmpty() &&
+                        text != currentUtterance &&
+                        (
+                            prefixShorteningLikelyNewUtterance ||
+                                (
+                                    !text.startsWith(currentUtterance) &&
+                                        !currentUtterance.startsWith(text)
+                                    )
+                            )
                 if (isNewUtterance) {
                     val toAppend = currentUtterance.trim()
                     val isCJK = PunctuationHelper.isPrimarilyCJK(accumulatedText.toString() + toAppend)

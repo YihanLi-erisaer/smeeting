@@ -114,8 +114,13 @@ void run_inference_loop() {
         std::string text = g_recognizer->GetResult(stream.get()).text;
         bool is_endpoint = g_recognizer->IsEndpoint(stream.get());
 
-        if (!text.empty() && text != last_text) {
-            last_text = text;
+        // Always notify Kotlin when an endpoint is detected, even if text equals last_text.
+        // Otherwise the last partial is never delivered with isFinal=true, Kotlin never
+        // commits the utterance to accumulated text, and the next segment can overwrite UI.
+        if (!text.empty() && (text != last_text || is_endpoint)) {
+            if (text != last_text) {
+                last_text = text;
+            }
             jstring j_text = env->NewStringUTF(text.c_str());
             env->CallVoidMethod(g_bridge_obj, g_callback_mid, j_text, 0.95f, is_endpoint);
             env->DeleteLocalRef(j_text);
