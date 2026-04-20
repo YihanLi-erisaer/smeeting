@@ -83,7 +83,8 @@ class LLMRepositoryImpl @Inject constructor(
 
     private fun detectPromptLanguage(text: String): PromptLanguage {
         val hanCharCount = text.count { it.code in HAN_UNICODE_START..HAN_UNICODE_END }
-        return if (hanCharCount >= MIN_HAN_CHAR_FOR_CHINESE) {
+        val engCharCount = text.count { it.code in 0x0020..0x007E }
+        return if (hanCharCount >= engCharCount) {
             PromptLanguage.CHINESE
         } else {
             PromptLanguage.ENGLISH
@@ -103,7 +104,7 @@ class LLMRepositoryImpl @Inject constructor(
         private const val MAX_INPUT_CHARS = 4096
         private const val HAN_UNICODE_START = 0x4E00
         private const val HAN_UNICODE_END = 0x9FFF
-        private const val MIN_HAN_CHAR_FOR_CHINESE = 4
+        // private const val MIN_HAN_CHAR_FOR_CHINESE = 4
 
         private const val ENGLISH_SYSTEM_PROMPT =
             "You are a meeting transcription assistant. " +
