@@ -1,4 +1,4 @@
-﻿package com.stardazz.smeeting.feature.settings
+package com.stardazz.smeeting.feature.settings
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*

@@ -7,6 +7,7 @@ import android.text.format.DateUtils
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -57,6 +58,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -65,6 +67,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
@@ -92,9 +95,12 @@ fun HistoryScreen(
     val summarizingEntryId by viewModel.summarizingEntryId.collectAsState()
     val streamingText by viewModel.streamingText.collectAsState()
     val view = LocalView.current
-    DisposableEffect(summarizingEntryId != null) {
-        val keepOn = summarizingEntryId != null
-        view.keepScreenOn = keepOn
+    val keepScreenOn =
+        summarizingEntryId != null ||
+            llmState is LlmModelState.Downloading ||
+            llmState is LlmModelState.Loading
+    DisposableEffect(keepScreenOn) {
+        view.keepScreenOn = keepScreenOn
         onDispose {
             view.keepScreenOn = false
         }
@@ -455,13 +461,18 @@ private fun HistoryEntryDetail(
 ) {
     val scrollState = rememberScrollState()
     val generatingLabel = stringResource(R.string.summary_generating)
-    // While summarizing, do not fall back to persisted item.summary — otherwise Re-summarize
-    // looks unchanged until the first streamed token arrives.
-    val displaySummary = when {
+    val rawSummaryText: String? = when {
         isSummarizing && streamingText.isNotEmpty() -> streamingText
-        isSummarizing -> generatingLabel
-        !item.summary.isNullOrEmpty() -> item.summary
+        !isSummarizing && !item.summary.isNullOrEmpty() -> item.summary
         else -> null
+    }
+    val showSummarySection =
+        rawSummaryText != null || (isSummarizing && streamingText.isEmpty())
+
+    LaunchedEffect(isSummarizing, streamingText, rawSummaryText) {
+        if (!isSummarizing) return@LaunchedEffect
+        withFrameNanos { }
+        scrollState.scrollTo(scrollState.maxValue)
     }
 
     Column(
@@ -483,36 +494,48 @@ private fun HistoryEntryDetail(
                 .weight(1f),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         ) {
-            SelectionContainer {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(scrollState)
-                        .padding(16.dp),
-                ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .padding(16.dp),
+            ) {
+                SelectionContainer {
                     Text(
                         text = item.text,
                         style = MaterialTheme.typography.bodyLarge,
                     )
+                }
 
-                    if (displaySummary != null) {
-                        Spacer(Modifier.height(16.dp))
-                        Text(
-                            text = stringResource(R.string.summary_title),
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            text = displaySummary,
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                        if (isSummarizing) {
-                            Spacer(Modifier.height(4.dp))
-                            LinearProgressIndicator(
-                                modifier = Modifier.fillMaxWidth(),
+                if (showSummarySection) {
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        text = stringResource(R.string.summary_title),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    when {
+                        rawSummaryText != null -> {
+                            SelectionContainer {
+                                Text(
+                                    text = rawSummaryText,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            }
+                        }
+                        else -> {
+                            Text(
+                                text = generatingLabel,
+                                style = MaterialTheme.typography.bodyMedium,
                             )
                         }
+                    }
+                    if (isSummarizing) {
+                        Spacer(Modifier.height(4.dp))
+                        LinearProgressIndicator(
+                            modifier = Modifier.fillMaxWidth(),
+                        )
                     }
                 }
             }
@@ -526,8 +549,14 @@ private fun HistoryEntryDetail(
             onCancelSummarize = onCancelSummarize,
             onDownloadModel = onDownloadModel,
             onCopySummary = {
-                val text = displaySummary
-                if (!text.isNullOrEmpty()) onCopySummary(text)
+                val raw = when {
+                    isSummarizing && streamingText.isNotEmpty() -> streamingText
+                    !item.summary.isNullOrEmpty() -> item.summary
+                    else -> null
+                }
+                if (!raw.isNullOrEmpty()) {
+                    onCopySummary(AiSummaryThinkingParser.copyPlainText(raw))
+                }
             },
         )
     }

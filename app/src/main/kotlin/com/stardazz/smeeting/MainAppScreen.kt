@@ -1,4 +1,4 @@
-﻿package com.stardazz.smeeting
+package com.stardazz.smeeting
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent

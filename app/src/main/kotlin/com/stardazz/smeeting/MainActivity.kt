@@ -1,4 +1,4 @@
-﻿package com.stardazz.smeeting
+package com.stardazz.smeeting
 
 import android.Manifest
 import android.os.Bundle
