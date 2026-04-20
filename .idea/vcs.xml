@@ -2,7 +2,7 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/core/llm/src/main/cpp/llama.cpp" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/core/llm/src/main/cpp/ncnn_llm" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/sherpa-ncnn" vcs="Git" />
   </component>
 </project>

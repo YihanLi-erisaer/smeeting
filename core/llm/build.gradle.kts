@@ -14,10 +14,13 @@ android {
 
         externalNativeBuild {
             cmake {
-                cppFlags += listOf("-fexceptions", "-O2")
+                cppFlags += listOf("-fexceptions", "-O2", "-fopenmp")
                 arguments.addAll(listOf(
                     "-DANDROID_CPP_FEATURES=exceptions",
                     "-DANDROID_STL=c++_shared",
+                    "-DOpenMP_C_FLAGS=-fopenmp",
+                    "-DOpenMP_CXX_FLAGS=-fopenmp",
+                    "-DCMAKE_SHARED_LINKER_FLAGS=-static-openmp",
                 ))
                 abiFilters.add("arm64-v8a")
                 abiFilters.add("armeabi-v7a")

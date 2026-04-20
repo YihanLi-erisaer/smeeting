@@ -14,14 +14,13 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class LlamaCppBridge @Inject constructor() {
+class NcnnLlmBridge @Inject constructor() {
 
     private val _isLoaded = MutableStateFlow(false)
     val isLoaded: StateFlow<Boolean> = _isLoaded.asStateFlow()
 
     private val isGeneratingAtomic = AtomicBoolean(false)
 
-    /** True while [generateNative] is running; used to await cancel completion. */
     private val _isGeneratingFlow = MutableStateFlow(false)
     val isGenerating: StateFlow<Boolean> = _isGeneratingFlow.asStateFlow()
 
@@ -31,7 +30,7 @@ class LlamaCppBridge @Inject constructor() {
     )
 
     companion object {
-        private const val TAG = "LlamaCppBridge"
+        private const val TAG = "NcnnLlmBridge"
 
         init {
             try {
@@ -44,17 +43,22 @@ class LlamaCppBridge @Inject constructor() {
         }
     }
 
-    @Suppress("unused") // Called from JNI
+    @Suppress("unused")
     fun onTokenGenerated(token: String) {
         _tokenFlow.tryEmit(token)
     }
 
-    suspend fun loadModel(modelPath: String, nThreads: Int = 4): Boolean =
+    suspend fun loadModel(
+        modelPath: String,
+        useVulkan: Boolean,
+        nThreads: Int = 4,
+        vulkanDeviceIndex: Int = 0,
+    ): Boolean =
         withContext(Dispatchers.IO) {
-            val success = loadModelNative(modelPath, nThreads)
+            val success = loadModelNative(modelPath, useVulkan, nThreads, vulkanDeviceIndex)
             _isLoaded.value = success
             if (success) {
-                Log.i(TAG, "Model loaded from $modelPath")
+                Log.i(TAG, "Model loaded from $modelPath (vulkan=$useVulkan)")
             } else {
                 Log.e(TAG, "Failed to load model from $modelPath")
             }
@@ -66,10 +70,6 @@ class LlamaCppBridge @Inject constructor() {
         _isLoaded.value = false
     }
 
-    /**
-     * Runs generation on [Dispatchers.IO]. Returns the full generated text.
-     * Tokens are streamed via [tokenFlow] as they are produced.
-     */
     suspend fun generate(prompt: String, maxTokens: Int = 512, nThreads: Int = 4): String {
         if (!_isLoaded.value) return ""
         if (!isGeneratingAtomic.compareAndSet(false, true)) {
@@ -93,7 +93,13 @@ class LlamaCppBridge @Inject constructor() {
 
     fun tokenFlow(): Flow<String> = _tokenFlow
 
-    private external fun loadModelNative(modelPath: String, nThreads: Int): Boolean
+    private external fun loadModelNative(
+        modelPath: String,
+        useVulkan: Boolean,
+        nThreads: Int,
+        vulkanDeviceIndex: Int,
+    ): Boolean
+
     private external fun releaseModelNative()
     private external fun abortNative()
     private external fun generateNative(prompt: String, maxTokens: Int, nThreads: Int): String

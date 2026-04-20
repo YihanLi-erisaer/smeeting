@@ -1,15 +1,27 @@
 #include <jni.h>
-#include <string>
 #include <android/log.h>
-#include <mutex>
 #include <atomic>
-#include <vector>
+#include <memory>
+#include <mutex>
+#include <string>
 
-#include "llama.h"
+#include "ncnn_llm_gpt.h"
+
+#if NCNN_VULKAN
+#include <gpu.h>
+#endif
 
 #define TAG "LLM-Native"
 
-/** Longest well-formed UTF-8 prefix of `data[0..len)`; stops before broken or incomplete tail. */
+std::atomic<bool> g_ncnn_llm_abort{false};
+
+static std::unique_ptr<ncnn_llm_gpt> g_model;
+static std::mutex g_mutex;
+
+#if NCNN_VULKAN
+static std::atomic<bool> g_gpu_instance_created{false};
+#endif
+
 static size_t utf8_valid_prefix_len(const char* data, size_t len) {
     size_t i = 0;
     while (i < len) {
@@ -35,10 +47,6 @@ static size_t utf8_valid_prefix_len(const char* data, size_t len) {
     return len;
 }
 
-/**
- * Bytes safe to emit as a decoded string: complete UTF-8 chars, or 0 while waiting for more bytes,
- * or 1 on a bad lead byte so streaming cannot deadlock.
- */
 static size_t utf8_emit_prefix_len(const char* data, size_t len) {
     size_t vp = utf8_valid_prefix_len(data, len);
     if (vp > 0)
@@ -62,7 +70,6 @@ static size_t utf8_emit_prefix_len(const char* data, size_t len) {
     return 1;
 }
 
-/** Decodes arbitrary UTF-8 bytes into jstring (handles malformed tail like Android/Java String). */
 static jstring utf8_bytes_to_jstring(JNIEnv* env, const char* data, size_t len) {
     if (len == 0)
         return env->NewStringUTF("");
@@ -92,92 +99,94 @@ static jstring utf8_bytes_to_jstring(JNIEnv* env, const char* data, size_t len) 
     return out ? out : env->NewStringUTF("");
 }
 
-static llama_model* g_model = nullptr;
-static llama_sampler* g_sampler = nullptr;
-static std::mutex g_mutex;
-static std::atomic<bool> g_abort(false);
-static JavaVM* g_jvm = nullptr;
-
 extern "C" {
 
-JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved) {
-    g_jvm = vm;
-    llama_backend_init();
-    __android_log_print(ANDROID_LOG_INFO, TAG, "llama.cpp backend initialized");
+JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* /*vm*/, void* /*reserved*/) {
+#if NCNN_VULKAN
+    // Required before any ncnn::Net uses Vulkan in this .so (separate static libncnn from ASR).
+    const int err = ncnn::create_gpu_instance();
+    if (err == 0) {
+        g_gpu_instance_created.store(true, std::memory_order_relaxed);
+        __android_log_print(ANDROID_LOG_INFO, TAG, "ncnn create_gpu_instance ok, gpu_count=%d", ncnn::get_gpu_count());
+    } else {
+        __android_log_print(ANDROID_LOG_WARN, TAG, "ncnn create_gpu_instance failed (%d), LLM will use CPU only", err);
+    }
+#endif
     return JNI_VERSION_1_6;
 }
 
-JNIEXPORT void JNICALL JNI_OnUnload(JavaVM* vm, void* reserved) {
-    std::lock_guard<std::mutex> lock(g_mutex);
-    if (g_sampler) {
-        llama_sampler_free(g_sampler);
-        g_sampler = nullptr;
+JNIEXPORT void JNICALL JNI_OnUnload(JavaVM* /*vm*/, void* /*reserved*/) {
+#if NCNN_VULKAN
+    if (g_gpu_instance_created.exchange(false, std::memory_order_relaxed)) {
+        ncnn::destroy_gpu_instance();
+        __android_log_print(ANDROID_LOG_INFO, TAG, "ncnn destroy_gpu_instance");
     }
-    if (g_model) {
-        llama_model_free(g_model);
-        g_model = nullptr;
-    }
-    llama_backend_free();
+#endif
 }
 
 JNIEXPORT jboolean JNICALL
-Java_com_stardazz_smeeting_core_llm_LlamaCppBridge_loadModelNative(
-        JNIEnv* env, jobject thiz, jstring model_path, jint n_threads) {
+Java_com_stardazz_smeeting_core_llm_NcnnLlmBridge_loadModelNative(
+        JNIEnv* env, jobject thiz, jstring model_path, jboolean use_vulkan, jint n_threads, jint vulkan_device) {
     std::lock_guard<std::mutex> lock(g_mutex);
-
-    if (g_model) {
-        __android_log_print(ANDROID_LOG_WARN, TAG, "Model already loaded, releasing first");
-        if (g_sampler) { llama_sampler_free(g_sampler); g_sampler = nullptr; }
-        llama_model_free(g_model);
-        g_model = nullptr;
-    }
+    g_ncnn_llm_abort = false;
+    g_model.reset();
 
     const char* path = env->GetStringUTFChars(model_path, nullptr);
-    __android_log_print(ANDROID_LOG_INFO, TAG, "Loading model from: %s", path);
 
-    llama_model_params model_params = llama_model_default_params();
-    model_params.use_mmap = true;
+    bool use_vk = use_vulkan != JNI_FALSE;
+#if NCNN_VULKAN
+    if (use_vk) {
+        if (!g_gpu_instance_created.load(std::memory_order_relaxed) || ncnn::get_gpu_count() <= 0) {
+            __android_log_print(ANDROID_LOG_WARN, TAG, "Vulkan requested but GPU not ready — using CPU");
+            use_vk = false;
+        }
+    }
+#else
+    use_vk = false;
+#endif
 
-    g_model = llama_model_load_from_file(path, model_params);
-    env->ReleaseStringUTFChars(model_path, path);
+    __android_log_print(ANDROID_LOG_INFO, TAG, "Loading ncnn_llm from: %s (vulkan=%d threads=%d vulkan_dev=%d)",
+                        path, use_vk ? 1 : 0, n_threads, vulkan_device);
 
-    if (!g_model) {
-        __android_log_print(ANDROID_LOG_ERROR, TAG, "Failed to load model");
+    try {
+        g_model = std::make_unique<ncnn_llm_gpt>(
+            std::string(path),
+            use_vk,
+            static_cast<int>(n_threads),
+            static_cast<int>(vulkan_device));
+    } catch (const std::exception& e) {
+        __android_log_print(ANDROID_LOG_ERROR, TAG, "ncnn_llm load failed: %s", e.what());
+        env->ReleaseStringUTFChars(model_path, path);
+        return JNI_FALSE;
+    } catch (...) {
+        __android_log_print(ANDROID_LOG_ERROR, TAG, "ncnn_llm load failed (unknown)");
+        env->ReleaseStringUTFChars(model_path, path);
         return JNI_FALSE;
     }
-
-    g_sampler = llama_sampler_chain_init(llama_sampler_chain_default_params());
-    llama_sampler_chain_add(g_sampler, llama_sampler_init_temp(0.3f));
-    llama_sampler_chain_add(g_sampler, llama_sampler_init_top_p(0.9f, 1));
-    llama_sampler_chain_add(g_sampler, llama_sampler_init_dist(0));
-
-    const llama_vocab* vocab = llama_model_get_vocab(g_model);
-    __android_log_print(ANDROID_LOG_INFO, TAG, "Model loaded, n_vocab=%d",
-                        llama_vocab_n_tokens(vocab));
+    env->ReleaseStringUTFChars(model_path, path);
     return JNI_TRUE;
 }
 
 JNIEXPORT void JNICALL
-Java_com_stardazz_smeeting_core_llm_LlamaCppBridge_releaseModelNative(
-        JNIEnv* env, jobject thiz) {
+Java_com_stardazz_smeeting_core_llm_NcnnLlmBridge_releaseModelNative(JNIEnv* env, jobject thiz) {
+    g_ncnn_llm_abort = true;
     std::lock_guard<std::mutex> lock(g_mutex);
-    g_abort = true;
-    if (g_sampler) { llama_sampler_free(g_sampler); g_sampler = nullptr; }
-    if (g_model) { llama_model_free(g_model); g_model = nullptr; }
-    __android_log_print(ANDROID_LOG_INFO, TAG, "Model released");
+    g_model.reset();
+    __android_log_print(ANDROID_LOG_INFO, TAG, "ncnn_llm model released");
 }
 
 JNIEXPORT void JNICALL
-Java_com_stardazz_smeeting_core_llm_LlamaCppBridge_abortNative(
-        JNIEnv* env, jobject thiz) {
-    g_abort = true;
+Java_com_stardazz_smeeting_core_llm_NcnnLlmBridge_abortNative(JNIEnv* env, jobject thiz) {
+    g_ncnn_llm_abort = true;
 }
 
 JNIEXPORT jstring JNICALL
-Java_com_stardazz_smeeting_core_llm_LlamaCppBridge_generateNative(
-        JNIEnv* env, jobject thiz, jstring prompt_str, jint max_tokens, jint n_threads) {
+Java_com_stardazz_smeeting_core_llm_NcnnLlmBridge_generateNative(
+        JNIEnv* env, jobject thiz, jstring prompt_str, jint max_tokens, jint n_threads_unused) {
+    (void)n_threads_unused;
 
-    if (!g_model || !g_sampler) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+    if (!g_model) {
         return env->NewStringUTF("");
     }
 
@@ -185,130 +194,58 @@ Java_com_stardazz_smeeting_core_llm_LlamaCppBridge_generateNative(
     std::string prompt(prompt_cstr);
     env->ReleaseStringUTFChars(prompt_str, prompt_cstr);
 
-    g_abort = false;
-
-    const llama_vocab* vocab = llama_model_get_vocab(g_model);
-
-    int n_prompt_max = prompt.size() + 256;
-    std::vector<llama_token> tokens(n_prompt_max);
-    int n_tokens = llama_tokenize(vocab, prompt.c_str(), prompt.size(),
-                                  tokens.data(), n_prompt_max, true, true);
-    if (n_tokens < 0) {
-        __android_log_print(ANDROID_LOG_ERROR, TAG, "Tokenization failed");
-        return env->NewStringUTF("");
-    }
-    tokens.resize(n_tokens);
-
-    // Mobile KV budget (was effectively 4096 before; keep aligned with that constraint).
-    const int kMaxCtx = 4096;
-    const int reserve_tokens = max_tokens + 64;
-
-    int n_ctx = n_tokens + reserve_tokens;
-    if (n_ctx > kMaxCtx) {
-        n_ctx = kMaxCtx;
-    }
-
-    // Must leave room for generation; otherwise llama_decode / KV asserts.
-    if (n_tokens + reserve_tokens > n_ctx) {
-        int keep = n_ctx - reserve_tokens;
-        if (keep < 1) {
-            keep = 1;
-        }
-        if (n_tokens > keep) {
-            __android_log_print(ANDROID_LOG_WARN, TAG,
-                                "Prompt truncated from %d to %d tokens (n_ctx=%d, max_tokens=%d)",
-                                n_tokens, keep, n_ctx, max_tokens);
-            tokens.resize(static_cast<size_t>(keep));
-            n_tokens = keep;
-        }
-    }
-
-    llama_context_params ctx_params = llama_context_default_params();
-    ctx_params.n_ctx = n_ctx;
-    ctx_params.n_threads = n_threads;
-    ctx_params.n_threads_batch = n_threads;
-    // Critical: a single llama_decode for the prompt cannot exceed n_batch. It was fixed at 512,
-    // so long prompts (many tokens) hit ggml_abort inside llama_context::decode.
-    int n_batch = n_tokens;
-    if (n_batch < 512) {
-        n_batch = 512;
-    }
-    if (n_batch > n_ctx) {
-        n_batch = n_ctx;
-    }
-    ctx_params.n_batch = n_batch;
-    ctx_params.no_perf = true;
-
-    llama_context* ctx = llama_init_from_model(g_model, ctx_params);
-    if (!ctx) {
-        __android_log_print(ANDROID_LOG_ERROR, TAG, "Failed to create context");
-        return env->NewStringUTF("");
-    }
-
-    llama_batch batch = llama_batch_get_one(tokens.data(), n_tokens);
-    if (llama_decode(ctx, batch) != 0) {
-        __android_log_print(ANDROID_LOG_ERROR, TAG, "Prompt decode failed");
-        llama_free(ctx);
-        return env->NewStringUTF("");
-    }
+    g_ncnn_llm_abort = false;
 
     jclass bridge_class = env->GetObjectClass(thiz);
-    jmethodID on_token_mid = env->GetMethodID(bridge_class, "onTokenGenerated",
-                                               "(Ljava/lang/String;)V");
+    jmethodID on_token_mid = env->GetMethodID(bridge_class, "onTokenGenerated", "(Ljava/lang/String;)V");
 
     std::string result;
     std::string utf8_stream_buf;
 
-    for (int i = 0; i < max_tokens && !g_abort; i++) {
-        llama_token new_token = llama_sampler_sample(g_sampler, ctx, -1);
+    try {
+        auto ctx = g_model->prefill(prompt);
 
-        if (llama_vocab_is_eog(vocab, new_token)) {
-            break;
-        }
+        GenerateConfig cfg;
+        cfg.max_new_tokens = max_tokens > 0 ? max_tokens : 512;
+        cfg.temperature = 0.3f;
+        cfg.top_p = 0.9f;
+        cfg.top_k = 50;
+        cfg.repetition_penalty = 1.1f;
+        cfg.do_sample = 1;
 
-        char buf[256];
-        int len = llama_token_to_piece(vocab, new_token, buf, sizeof(buf), 0, true);
-        if (len > 0) {
-            std::string piece(buf, static_cast<size_t>(len));
+        g_model->generate(ctx, cfg, [&](const std::string& piece) {
             result += piece;
-
-            if (on_token_mid) {
-                utf8_stream_buf += piece;
-                for (;;) {
-                    size_t n = utf8_emit_prefix_len(utf8_stream_buf.data(), utf8_stream_buf.size());
-                    if (n == 0)
-                        break;
-                    std::string chunk(utf8_stream_buf.data(), n);
-                    utf8_stream_buf.erase(0, n);
-                    jstring j_chunk = utf8_bytes_to_jstring(env, chunk.data(), chunk.size());
-                    env->CallVoidMethod(thiz, on_token_mid, j_chunk);
-                    env->DeleteLocalRef(j_chunk);
-                }
+            if (!on_token_mid)
+                return;
+            utf8_stream_buf += piece;
+            for (;;) {
+                size_t n = utf8_emit_prefix_len(utf8_stream_buf.data(), utf8_stream_buf.size());
+                if (n == 0)
+                    break;
+                std::string chunk(utf8_stream_buf.data(), n);
+                utf8_stream_buf.erase(0, n);
+                jstring j_chunk = utf8_bytes_to_jstring(env, chunk.data(), chunk.size());
+                env->CallVoidMethod(thiz, on_token_mid, j_chunk);
+                env->DeleteLocalRef(j_chunk);
             }
+        });
+
+        if (on_token_mid && !utf8_stream_buf.empty()) {
+            jstring j_tail = utf8_bytes_to_jstring(env, utf8_stream_buf.data(), utf8_stream_buf.size());
+            env->CallVoidMethod(thiz, on_token_mid, j_tail);
+            env->DeleteLocalRef(j_tail);
         }
-
-        llama_batch next_batch = llama_batch_get_one(&new_token, 1);
-        if (llama_decode(ctx, next_batch) != 0) {
-            __android_log_print(ANDROID_LOG_ERROR, TAG, "Decode step failed at token %d", i);
-            break;
-        }
+    } catch (const std::exception& e) {
+        __android_log_print(ANDROID_LOG_ERROR, TAG, "generate failed: %s", e.what());
+        return env->NewStringUTF("");
     }
-
-    if (on_token_mid && !utf8_stream_buf.empty()) {
-        jstring j_tail = utf8_bytes_to_jstring(env, utf8_stream_buf.data(), utf8_stream_buf.size());
-        env->CallVoidMethod(thiz, on_token_mid, j_tail);
-        env->DeleteLocalRef(j_tail);
-    }
-
-    llama_free(ctx);
-    llama_sampler_reset(g_sampler);
 
     return utf8_bytes_to_jstring(env, result.data(), result.size());
 }
 
 JNIEXPORT jboolean JNICALL
-Java_com_stardazz_smeeting_core_llm_LlamaCppBridge_isModelLoadedNative(
-        JNIEnv* env, jobject thiz) {
+Java_com_stardazz_smeeting_core_llm_NcnnLlmBridge_isModelLoadedNative(JNIEnv* env, jobject thiz) {
+    std::lock_guard<std::mutex> lock(g_mutex);
     return g_model != nullptr ? JNI_TRUE : JNI_FALSE;
 }
 
