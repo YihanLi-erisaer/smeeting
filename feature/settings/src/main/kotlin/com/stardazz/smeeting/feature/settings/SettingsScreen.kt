@@ -15,7 +15,6 @@ fun SettingsScreen(
     themeMode: ThemeMode,
     useBeamSearch: Boolean,
     appVersion: String,
-    inferenceBackendLabel: String,
     onThemeModeChanged: (ThemeMode) -> Unit,
     onUseBeamSearchChanged: (Boolean) -> Unit,
     onBack: () -> Unit
@@ -91,30 +90,6 @@ fun SettingsScreen(
                 Switch(
                     checked = useBeamSearch,
                     onCheckedChange = onUseBeamSearchChanged
-                )
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
-                    Text(
-                        text = stringResource(R.string.inference_backend),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    Text(
-                        text = stringResource(R.string.inference_backend_subtitle),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Text(
-                    text = inferenceBackendLabel,
-                    style = MaterialTheme.typography.bodyMedium
                 )
             }
 

@@ -8,11 +8,4 @@
     <string name="beam_search">Beam search</string>
     <string name="beam_search_subtitle">Default Greedy search. On: modified beam search, often slower with higher accuracy.</string>
     <string name="app_version">App version</string>
-    <string name="inference_backend">Inference compute</string>
-    <string name="inference_backend_subtitle">GPU is used when available; otherwise CPU.</string>
-    <string name="inference_backend_gpu" translatable="false">GPU (Vulkan)</string>
-    <string name="inference_backend_cpu">CPU</string>
-    <string name="inference_backend_loading">Loading…</string>
-    <string name="inference_backend_unavailable">Unavailable</string>
-    <string name="inference_backend_unknown">Unknown</string>
 </resources>

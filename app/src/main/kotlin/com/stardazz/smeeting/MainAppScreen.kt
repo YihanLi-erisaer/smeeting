@@ -34,7 +34,6 @@ fun MainAppScreen(
     currentScreen: MainScreen,
     useBeamSearch: Boolean,
     appVersion: String,
-    inferenceBackendLabel: String,
     modelInitState: ModelInitState,
 ) {
     val scope = rememberCoroutineScope()
@@ -91,7 +90,6 @@ fun MainAppScreen(
                                 themeMode = themeState.themeMode,
                                 useBeamSearch = useBeamSearch,
                                 appVersion = appVersion,
-                                inferenceBackendLabel = inferenceBackendLabel,
                                 onThemeModeChanged = { themeState.updateThemeMode(it) },
                                 onUseBeamSearchChanged = {
                                     scope.launch { themePreferences.setUseBeamSearch(it) }
