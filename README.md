@@ -1,14 +1,16 @@
 # smeeting
 
-On-device **streaming speech recognition** for Android, powered by **Sherpa-NCNN** and **ncnn**, plus optional **on-device text summarization** of saved transcripts using **llama.cpp** and a small **Qwen2.5** GGUF model.
+On-device **streaming speech recognition** for Android using **Sherpa-NCNN** and **ncnn**, with optional **on-device summarization** of saved transcripts using a small **Qwen3** model exported for **ncnn** (same native stack as ASR: Vulkan when available, CPU fallback).
+
+**Current app version:** `4.1.2` (`versionName` in `:app`).
 
 ---
 
 ## Overview
 
-- **ASR**: Real-time speech-to-text runs entirely on the device (no cloud ASR). Audio is captured at 16 kHz mono, processed through a native JNI pipeline, and results are shown in a Jetpack Compose UI.
-- **Privacy**: All inference is performed locally. Microphone audio and ASR inference stay on-device. Transcripts stored in local history (Room).
-- **Summaries (optional)**: From **Transcription history**, you can download a quantized LLM (~400 MB) once, then generate **streaming summaries** (key points, action items, etc.). Inference uses **llama.cpp** on the CPU; ASR and LLM are coordinated so they do not run at the same time to reduce memory pressure.
+- **ASR**: Real-time speech-to-text runs entirely on the device (no cloud ASR). Audio is captured at 16 kHz mono, processed through a native JNI pipeline (`libncnn_asr.so`), and shown in a Jetpack Compose UI.
+- **Privacy**: Microphone audio, ASR, and optional LLM inference stay on-device. Transcripts live in local history (Room). Network is used only when you **download** the optional LLM asset bundle.
+- **Summaries (optional)**: From **Transcription history**, download the quantized **Qwen3 0.6B** ncnn bundle once, then generate **streaming summaries** (key points, action items, etc.). The app coordinates ASR and LLM so heavy models are not loaded together longer than necessary, which helps on low-RAM phones.
 
 ---
 
@@ -17,9 +19,9 @@ On-device **streaming speech recognition** for Android, powered by **Sherpa-NCNN
 | Area | Description |
 |------|-------------|
 | Streaming ASR | Live partial and final transcripts with endpointing |
-| GPU / CPU | Tries Vulkan for the encoder when available, falls back to CPU |
+| GPU / CPU | ASR tries **Vulkan** first where supported, then CPU; encoder path mirrors Sherpa-NCNN / ncnn conventions |
 | History | Saved entries, copy/delete, detail view |
-| On-device LLM | Download **Qwen2.5-0.5B-Instruct** `Q4_K_M` GGUF; summarize history entries offline |
+| On-device LLM | Download **Qwen3 0.6B** ncnn FP16 assets; summarize history entries offline |
 | Settings | Theme, beam search, and related preferences |
 
 ---
@@ -33,8 +35,8 @@ Gradle modules (simplified):
 | `:app` | Application shell, navigation, Hilt |
 | `:domain` | Models, repository interfaces, use cases |
 | `:data` | Room, repository implementations (ASR, history, LLM) |
-| `:core:media` | Audio capture, **Sherpa-NCNN** JNI (`ncnn_asr`) |
-| `:core:llm` | **llama.cpp** via JNI (`llm_inference`) |
+| `:core:media` | Audio capture, **Sherpa-NCNN** JNI (`ncnn_asr`), bundled ncnn prebuilts under `src/main/cpp` |
+| `:core:llm` | **ncnn** LLM via JNI (`llm_inference`), sources under `src/main/cpp/ncnn_llm` |
 | `:core:startup` | Startup DAG, **ASR** and **LLM** model lifecycle (`AsrModelManager`, `LlmModelManager`) |
 | `:core:common` | Shared utilities (e.g. inference coordination) |
 | `:core:ui` | Compose theme |
@@ -42,65 +44,57 @@ Gradle modules (simplified):
 | `:feature:history` | History list, detail, summarize / download UI |
 | `:feature:settings` | Settings screen |
 
-Native ASR follows the upstream **sherpa-ncnn** / **ncnn** integration pattern (see project `CMakeLists.txt` and `sherpa-ncnn` tree). The LLM stack is a **git submodule** under `core/llm/src/main/cpp/llama.cpp`.
+Native ASR follows the upstream **sherpa-ncnn** layout: the repo expects a **`sherpa-ncnn/`** directory at the project root (see `core/media/src/main/cpp/CMakeLists.txt`) with Android build outputs so headers and `libncnn.a` can be resolved. Prebuilt **ncnn** Android Vulkan packages are vendored next to the CMake tree for fallback linking.
 
 ---
 
 ## Requirements
 
-- **Android Studio** with **Android SDK** and **NDK** (project uses native CMake for `:core:media` and `:core:llm`)
-- **JDK 17** (toolchain aligned with Gradle / Kotlin)
-- **Device / ABI**: `arm64-v8a` and `armeabi-v7a` (see `ndk { abiFilters … }` in Gradle)
-- **Permissions**: `RECORD_AUDIO`; `INTERNET` only for **downloading** the LLM GGUF (ASR and LLM inference does not require network)
+- **Android Studio** with **Android SDK** and **NDK** (CMake builds `:core:media` and `:core:llm`)
+- **JDK 17** (Gradle / Kotlin toolchain)
+- **Device / ABI**: `arm64-v8a` and `armeabi-v7a` (`ndk { abiFilters … }` in Gradle)
+- **Permissions**: `RECORD_AUDIO`; `INTERNET` for **downloading** the optional LLM asset pack (inference itself is offline)
 
 ---
 
-## Clone and submodules
+## Clone and native prerequisites
 
 ```bash
-git clone https://github.com/YihanLi-erisaer/smeeting.git
-cd smeeting
-git submodule update --init --recursive
-git clone https://github.com/k2-fsa/sherpa-ncnn.git
-# more steps to set up for android see https://k2-fsa.github.io/sherpa/ncnn/android/build-sherpa-ncnn.html#download-sherpa-ncnn
-cd core\llm\src\main\cpp
-git clone https://github.com/ggml-org/llama.cpp.git
+git clone <your-fork-or-upstream-url> Kotlin-ASR-with-ncnn
+cd Kotlin-ASR-with-ncnn
 ```
 
-Initialize at least:
+Then set up **Sherpa-NCNN** for Android the same way the upstream project does: clone **`sherpa-ncnn`** beside the app sources and follow the official Android build guide so the expected **`build-android-*`** trees and optional **`jniLibs/<abi>/libncnn.a`** layout exist for CMake.
 
-- `core/llm/src/main/cpp/llama.cpp` — **llama.cpp** (for on-device summarization builds)
+- [Sherpa / NCNN Android build](https://k2-fsa.github.io/sherpa/ncnn/android/build-sherpa-ncnn.html)  
+- [sherpa-ncnn](https://github.com/k2-fsa/sherpa-ncnn)
 
-Sherpa-ncnn / ncnn native libraries and ASR model assets for Android are **not** fully covered by this README; follow the official sherpa-ncnn Android build guide to produce the expected **`jniLibs`** and **assets** layout expected by `AsrModelManager` / native code in your environment.
+The optional summarization stack does **not** use **llama.cpp** in this tree: `:core:llm` builds **`libllm_inference.so`** from the vendored **`ncnn_llm`** sources and links against the same ncnn prebuilts as documented in `core/llm/src/main/cpp/CMakeLists.txt`.
 
 ---
 
 ## ASR model assets
 
-Streaming ASR expects model files under Android **assets** (names such as `encoder.param`, `encoder.bin`, `decoder.*`, `joiner.*`, `tokens.txt`). Paths are wired in startup / native init — keep filenames consistent with `AsrModelManager` when you swap models.
-
-## LLM model
-
-LLM model will be downloaded within the application.
+Streaming ASR reads model files from Android **assets** with fixed names (see `AsrModelManager`): `encoder.param`, `encoder.bin`, `decoder.param`, `decoder.bin`, `joiner.param`, `joiner.bin`, `tokens.txt`. Keep these names when you swap models.
 
 ---
 
-## On-device LLM (summarization version: v4.0.0-beta)
+## On-device LLM (summarization)
 
 | Item | Detail |
 |------|--------|
-| **Runtime** | **llama.cpp** (linked as `libllm_inference.so`) |
-| **Default model** | **Qwen2.5-0.5B-Instruct** GGUF **`q4_k_m`** (~400 MB on disk) |
-| **Storage** | Downloaded to app **internal storage**: `context.filesDir` / `qwen2.5-0.5b-instruct-q4_k_m.gguf` |
-| **Source** | Hugging Face: `Qwen/Qwen2.5-0.5B-Instruct-GGUF` (URL is defined in `LlmModelManager`) |
+| **Runtime** | **ncnn** (JNI library `libllm_inference.so`, project `llm_inference` in CMake) |
+| **Default bundle** | **Qwen3 0.6B** ncnn **FP16** weights + tokenizer files |
+| **Storage** | App **internal storage**: `filesDir/qwen3_0.6b_ncnn/` (see `LlmModelManager`) |
+| **Download** | Multi-part HTTP download from `https://mirrors.sdu.edu.cn/ncnn_modelzoo/qwen3_0.6b/` (individual filenames such as `qwen3_decoder.ncnn.fp16.bin`, `model_fp16.json`, vocab, merges, etc.) |
 
-First-time summarization: use the in-app **download** action in history detail; after the file is present, the model is loaded and **Summarize** becomes available.
+First-time summarization: use the in-app **download** action on a history entry; after all parts are present, **Summarize** loads the graph (first load can take noticeable time on low-memory devices).
 
 ---
 
 ## Build
 
-Open the **`Kotlin-ASR-with-ncnn`** directory in Android Studio and sync Gradle, then build **Debug** or **Release** for a physical ARM device (recommended) or a compatible emulator.
+Open the **`Kotlin-ASR-with-ncnn`** project directory in Android Studio, sync Gradle, then build **Debug** or **Release** for a physical ARM device (recommended) or a compatible emulator.
 
 ```bash
 ./gradlew :app:assembleDebug
@@ -112,7 +106,7 @@ On Windows:
 gradlew.bat :app:assembleDebug
 ```
 
-If CMake fails for **`armeabi-v7a`**, the project disables **GGML LLAMAFILE** for that ABI in `core/llm/src/main/cpp/CMakeLists.txt` to avoid NEON FP16 intrinsics that are unavailable on typical 32-bit ARM targets.
+If CMake cannot find Sherpa-NCNN / ncnn artifacts, re-check the **`sherpa-ncnn`** clone location and Android build outputs against `core/media/src/main/cpp/CMakeLists.txt`.
 
 ---
 
@@ -156,8 +150,8 @@ Figures depend on device, model, and Vulkan availability. The performance data o
 
 - [sherpa-ncnn](https://github.com/k2-fsa/sherpa-ncnn) — streaming ASR with ncnn  
 - [Sherpa / NCNN Android build](https://k2-fsa.github.io/sherpa/ncnn/android/build-sherpa-ncnn.html)  
-- [llama.cpp](https://github.com/ggerganov/llama.cpp)  
-- [Qwen2.5 GGUF](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF)
+- [ncnn](https://github.com/Tencent/ncnn)  
+- [Qwen3 0.6B ncnn bundle (download host)](https://mirrors.sdu.edu.cn/ncnn_modelzoo/qwen3_0.6b/)  
 
 ---
 
