@@ -69,7 +69,38 @@ Then set up **Sherpa-NCNN** for Android the same way the upstream project does: 
 - [Sherpa / NCNN Android build](https://k2-fsa.github.io/sherpa/ncnn/android/build-sherpa-ncnn.html)  
 - [sherpa-ncnn](https://github.com/k2-fsa/sherpa-ncnn)
 
-The optional summarization stack does **not** use **llama.cpp** in this tree: `:core:llm` builds **`libllm_inference.so`** from the vendored **`ncnn_llm`** sources and links against the same ncnn prebuilts as documented in `core/llm/src/main/cpp/CMakeLists.txt`.
+### LLM (optional summarization) — what to initialize
+
+All paths below are relative to the **Gradle project root** (the directory that contains `settings.gradle.kts`). If your Git remote nests that project one level deeper (e.g. `Kotlin-ASR-with-ncnn/Kotlin-ASR-with-ncnn/`), `cd` into the inner folder first.
+
+**1) Native sources (required to compile `:core:llm`)**
+
+- **`core/llm/src/main/cpp/ncnn_llm/`** — vendored **ncnn LLM** C++ sources. They ship with this repo; there is **no** separate submodule to clone for the current summarization stack.
+- **`core/media/src/main/cpp/ncnn-20260113-android-vulkan/`** — prebuilt **ncnn** Android Vulkan package used as a **static import** by `core/llm/src/main/cpp/CMakeLists.txt` (via `MEDIA_CPP` → `…/media/src/main/cpp/ncnn-20260113-android-vulkan/${ANDROID_ABI}`). Each ABI directory must contain `include/ncnn` and `lib/libncnn.a` (plus the glslang/SPIRV import libs referenced in the same CMake file).
+
+Quick sanity check (Unix shell):
+
+```bash
+test -d core/llm/src/main/cpp/ncnn_llm
+test -d core/media/src/main/cpp/ncnn-20260113-android-vulkan/arm64-v8a
+test -d core/media/src/main/cpp/ncnn-20260113-android-vulkan/armeabi-v7a
+```
+
+On Windows (PowerShell), equivalent checks:
+
+```powershell
+Test-Path core\llm\src\main\cpp\ncnn_llm
+Test-Path core\media\src\main\cpp\ncnn-20260113-android-vulkan\arm64-v8a
+Test-Path core\media\src\main\cpp\ncnn-20260113-android-vulkan\armeabi-v7a
+```
+
+**2) Weights (not needed for `assembleDebug`, needed to run “Summarize”)**
+
+- **Qwen3 0.6B** ncnn assets are **not** checked into Git. After you install the app, use **in-app download** (or copy the same file set manually into the app’s internal `qwen3_0.6b_ncnn/` directory — see `LlmModelManager` and [On-device LLM (summarization)](#on-device-llm-summarization)).
+
+**3) Historical `llama.cpp` submodule**
+
+- Some checkouts may still list a **`.gitmodules`** entry for `core/llm/src/main/cpp/llama.cpp`. The current **`:core:llm`** build **does not** use **llama.cpp**; you **do not** need `git submodule update --init` for that path to compile or run summarization. If the directory is empty after an old `submodule update`, you can ignore it for native LLM builds.
 
 ---
 
