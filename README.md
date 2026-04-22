@@ -60,8 +60,11 @@ Native ASR follows the upstream **sherpa-ncnn** layout: the repo expects a **`sh
 ## Clone and native prerequisites
 
 ```bash
-git clone <your-fork-or-upstream-url> Kotlin-ASR-with-ncnn
-cd Kotlin-ASR-with-ncnn
+git clone https://github.com/YihanLi-erisaer/smeeting.git
+cd smeeting
+git submodule update --init --recursive
+git clone https://github.com/k2-fsa/sherpa-ncnn.git
+# more steps to set up for android see https://k2-fsa.github.io/sherpa/ncnn/android/build-sherpa-ncnn.html#download-sherpa-ncnn
 ```
 
 Then set up **Sherpa-NCNN** for Android the same way the upstream project does: clone **`sherpa-ncnn`** beside the app sources and follow the official Android build guide so the expected **`build-android-*`** trees and optional **`jniLibs/<abi>/libncnn.a`** layout exist for CMake.
