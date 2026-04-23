@@ -23,6 +23,8 @@
 # Keep the JNI bridge class and its members because the native layer binds to
 # the generated Java/Kotlin symbol names directly.
 -keep class com.stardazz.smeeting.core.media.NcnnNativeBridge { *; }
+# libllm_inference.so calls NcnnLlmBridge.onTokenGenerated(String) from JNI; R8 would remove it otherwise.
+-keep class com.stardazz.smeeting.core.llm.NcnnLlmBridge { *; }
 -keepclasseswithmembernames class * {
     native <methods>;
 }
