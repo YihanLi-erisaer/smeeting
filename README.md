@@ -2,7 +2,7 @@
 
 On-device **streaming speech recognition** for Android using **Sherpa-NCNN** and **ncnn**, with optional **on-device summarization** of saved transcripts using a small **Qwen3** model exported for **ncnn** (same native stack as ASR: Vulkan when available, CPU fallback).
 
-**Current app version:** `4.1.2` (`versionName` in `:app`).
+**Current app version:** `4.1.4` (`versionName` in `:app`).
 
 ---
 
